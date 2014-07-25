@@ -11,13 +11,19 @@ class Cube:
     e_max = e_min[1:]
     e_min = e_min[:-1]
     e_gmean = np.sqrt(e_min * e_max)
+    bin_width = bin_width[1:]
 
     def __init__(self, file=None):
         if file:
             fits = astropy.io.fits.open(file)
             fits.verify('ignore')
             self.counts, self.efficiency, self.low_threshold, self.valid = \
-            [fits[i].data for i in range(0, 4)]
+                [fits[i].data for i in range(0, 4)]
+            self.duration = fits[0].header['DURATION']
+            self.mdu_eff = np.array([fits[0].header['MDU%1i_EFF' % i] \
+                for i in range(0, 8)])
+            self.deadc = np.array([fits[0].header['DEADC%1i' % i] \
+                for i in range(0, 8)])
             fits.close()
         else:
             self.counts = np.zeros((128, 128, 256), np.int32)
