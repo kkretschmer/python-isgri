@@ -32,6 +32,16 @@ class Cube:
             self.low_threshold = np.zeros((128, 128, 256), np.float32)
             self.valid = np.zeros((128, 128), np.float32)
 
+    def __add__(self, summand):
+        self.counts += summand.counts
+        self.mdu_eff = (self.mdu_eff * self.duration + \
+                        summand.mdu_eff * summand.duration) / \
+            (self.duration + summand.duration)
+        self.deadc = 1 - ((1 - self.deadc) * self.duration + \
+                          (1 - summand.deadc) * summand.duration) / \
+            (self.duration + summand.duration)
+        self.duration += summand.duration
+
     def spectrum(self):
         return self.counts.sum((1, 2))
 
