@@ -54,6 +54,10 @@ class Cube:
     def spectrum(self):
         return self.counts.sum((1, 2))
 
+    def image(self, e_min=0, e_max=np.inf):
+        e_idx = np.logical_and(self.e_min >= e_min, self.e_max <= e_max)
+        return self.counts[e_idx, :, :].sum(0)
+
     def corr_shad(self):
         rate = np.array(self.counts, dtype='float64')
         rate /= self.duration * 0.4**2
