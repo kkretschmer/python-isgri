@@ -37,8 +37,14 @@ class Cube:
 
     def __add__(self, summand):
         self.counts += summand.counts
+        self.efficiency = (self.efficiency * self.duration + \
+                        summand.efficiency * summand.duration) / \
+            (self.duration + summand.duration)
         self.mdu_eff = (self.mdu_eff * self.duration + \
                         summand.mdu_eff * summand.duration) / \
+            (self.duration + summand.duration)
+        self.valid = (self.valid * self.duration + \
+                        summand.valid * summand.duration) / \
             (self.duration + summand.duration)
         self.deadc = 1 - ((1 - self.deadc) * self.duration + \
                           (1 - summand.deadc) * summand.duration) / \
