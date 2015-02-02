@@ -27,10 +27,13 @@ class Cube:
                 for i in range(0, 8)])
             fits.close()
         else:
-            self.counts = np.zeros((128, 128, 256), np.int32)
+            self.counts = np.zeros((256, 128, 128), np.int32)
             self.efficiency = np.zeros((128, 128), np.float64)
-            self.low_threshold = np.zeros((128, 128, 256), np.float32)
+            self.low_threshold = np.zeros((256, 128, 128), np.float32)
             self.valid = np.zeros((128, 128), np.float32)
+            self.duration = 0.0
+            self.mdu_eff = np.zeros((8,), np.float64)
+            self.deadc = np.zeros((8,), np.float64)
 
     def __add__(self, summand):
         self.counts += summand.counts
