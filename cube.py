@@ -35,7 +35,7 @@ class Cube:
             self.mdu_eff = np.zeros((8,), np.float64)
             self.deadc = np.zeros((8,), np.float64)
 
-    def __add__(self, summand):
+    def stack(self, summand):
         self.counts += summand.counts
         self.efficiency = (self.efficiency * self.duration + \
                         summand.efficiency * summand.duration) / \
