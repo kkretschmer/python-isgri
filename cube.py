@@ -2,9 +2,9 @@
 """
 
 try:
-    import astropy.io.fits as _fits
+    from astropy.io import fits
 except:
-    import pyfits as _fits
+    import pyfits as fits
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -40,7 +40,7 @@ class Cube(object):
             try:
                 # IDL cube
                 #
-                fits = _fits.open(path)
+                fits = fits.open(path)
                 fits.verify('ignore')
                 self.counts, self.pixel_eff, \
                     self.low_threshold, self.valid = \
@@ -70,8 +70,8 @@ class Cube(object):
             except IsADirectoryError:
                 # OSACube
                 #
-                dsg = _fits.open(os.path.join(path, self.filenames['dsg']))
-                esg = _fits.open(os.path.join(path, self.filenames['esg']))
+                dsg = fits.open(os.path.join(path, self.filenames['dsg']))
+                esg = fits.open(os.path.join(path, self.filenames['esg']))
                 grp = dsg['GROUPING']
                 self.e_min = grp.data['E_MIN']
                 self.e_max = grp.data['E_MAX']
