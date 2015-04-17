@@ -1,12 +1,11 @@
 """Accesses INTEGRAL/ISGRI background maps/cubes
 """
 
+import numpy as np
 try:
     from astropy.io import fits
-except:
+except ImportError:
     import pyfits as fits
-
-import numpy as np
 
 class Cube(object):
     """Handles ISGRI background maps

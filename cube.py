@@ -1,14 +1,14 @@
 """Accesses INTEGRAL/ISGRI IDL/OSA data cubes
 """
 
+import os
+
+import numpy as np
+import matplotlib.pyplot as plt
 try:
     from astropy.io import fits
-except:
+except ImportError:
     import pyfits as fits
-
-import matplotlib.pyplot as plt
-import numpy as np
-import os
 
 class Cube(object):
     """Handles ISGRI cubes in IDL and OSACube formats.
@@ -97,6 +97,9 @@ class Cube(object):
             self.duration = 0.0
             self.mdu_eff = np.zeros((8,), np.float64)
             self.deadc = np.zeros((8,), np.float64)
+
+    def rebin(self, e_min=None, e_max=None):
+        return
 
     def stack(self, summand):
         self.counts += summand.counts
