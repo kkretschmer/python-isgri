@@ -16,6 +16,8 @@ try:
 except KeyError:
     throng_dir = '/Integral/throng'
 
+byscw_dir = '/Integral/data/reduced/ddcache/byscw'
+
 class Cube(object):
     """Handles ISGRI cubes in IDL and OSACube formats.
     """
@@ -79,6 +81,11 @@ class Cube(object):
                 dsg = fits.open(os.path.join(path, self.filenames['dsg']))
                 esg = fits.open(os.path.join(path, self.filenames['esg']))
                 grp = dsg['GROUPING']
+                if len(grp.data) == 0:
+                    self.empty = True
+                    return
+                else:
+                    self.empty = False
                 self.e_min = grp.data['E_MIN']
                 self.e_max = grp.data['E_MAX']
                 self.e_gmean = np.sqrt(self.e_min * self.e_max)
@@ -181,3 +188,33 @@ def osacubes_avail():
                     revs[rev][scwid] = {}
                 revs[rev][scwid][id] = dir
     return revs
+
+def osacubes(scwids):
+    """Find OSA cubes matching the provided list of science window IDs
+    """
+    ids_wanted = np.array(scwids, dtype=np.uint64)
+    revs = osacubes_avail()
+    dirs_avail = []
+    for rev in revs.values():
+        dirs_avail.extend(rev.keys())
+    ids_avail = np.array([id[0:12] for id in dirs_avail], dtype=np.uint64)
+    ids = np.intersect1d(ids_wanted, ids_avail)
+
+    def best_cube(id):
+        ver_order = (
+            'OSACube.prod1_hotfix',
+            'OSACube.prod1_arf',
+            'OSACube.prod1',
+        )
+
+        id2rev = np.array(100000000, dtype=np.uint64)
+        rev = '{0:04d}'.format(id // id2rev)
+        scw = '{0:012d}.001'.format(id)
+        cubes = revs[rev][scw]
+        for ver in ver_order:
+            if ver in cubes.keys():
+                return Cube(os.path.join(byscw_dir, cubes[ver]))
+
+    cubes = [best_cube(id) for id in ids]
+    cubes = [cube for cube in cubes if not cube.empty]
+    return cubes
