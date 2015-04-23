@@ -40,17 +40,17 @@ class Cube(object):
             try:
                 # IDL cube
                 #
-                fits = fits.open(path)
+                ff = fits.open(path)
                 fits.verify('ignore')
                 self.counts, self.pixel_eff, \
                     self.low_threshold, self.valid = \
-                        [fits[i].data for i in range(0, 4)]
-                self.duration = fits[0].header['DURATION']
-                self.mdu_eff = np.array([fits[0].header['MDU%1i_EFF' % i] \
+                        [ff[i].data for i in range(0, 4)]
+                self.duration = ff[0].header['DURATION']
+                self.mdu_eff = np.array([ff[0].header['MDU%1i_EFF' % i] \
                                          for i in range(0, 8)])
-                self.deadc = np.array([fits[0].header['DEADC%1i' % i] \
+                self.deadc = np.array([ff[0].header['DEADC%1i' % i] \
                                        for i in range(0, 8)])
-                fits.close()
+                ff.close()
                 self.default_bins()
 
                 # calculate efficiency shadowgram
