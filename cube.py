@@ -152,6 +152,3 @@ class Cube(object):
         plt.imshow(dpi, aspect='equal', interpolation='nearest',
                    origin='lower', extent=(-0.5, 129.5, -0.5, 133.5),
                    *args, **kwargs)
-        # plt.plot([0, 1])
-        plt.show()
-        plt.close()
