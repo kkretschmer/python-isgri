@@ -2,6 +2,7 @@
 """
 
 import os
+import re
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,6 +10,11 @@ try:
     from astropy.io import fits
 except ImportError:
     import pyfits as fits
+
+try:
+    throng_dir = os.environ['THRONG_DIR']
+except KeyError:
+    throng_dir = '/Integral/throng'
 
 class Cube(object):
     """Handles ISGRI cubes in IDL and OSACube formats.
@@ -152,3 +158,26 @@ class Cube(object):
         plt.imshow(dpi, aspect='equal', interpolation='nearest',
                    origin='lower', extent=(-0.5, 129.5, -0.5, 133.5),
                    *args, **kwargs)
+
+def osacubes_avail():
+    """find available OSA cubes from the byscw direcory index file
+    """
+    dir_index = throng_dir + '/common/scwdb/byscw_find_type-d'
+    oc_re = re.compile('.*OSACube.*prod.*')
+    hash_re = re.compile('^[0-9a-f]{8}$')
+    revs = {}
+    with open(dir_index) as find:
+        for line in find:
+            dir = line.rstrip()
+            fields = dir.split('/')
+            if len(fields) <= 3: continue
+            if not hash_re.match(fields[-1]): continue
+            if oc_re.match(fields[2]):
+                rev, scwid = fields[0:2]
+                id = '/'.join(fields[2:-1])
+                if not rev in revs:
+                    revs[rev] = {}
+                if not scwid in revs[rev]:
+                    revs[rev][scwid] = {}
+                revs[rev][scwid][id] = dir
+    return revs
