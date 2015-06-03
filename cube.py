@@ -119,7 +119,15 @@ class Cube(object):
                 self.default_bins()
 
     def rebin(self, e_min=None, e_max=None):
-        return
+        rc = Cube(osacube=True)
+        rc.duration = self.duration
+        for bin in range(len(rc.e_min)):
+            bins = np.logical_and(self.e_min >= rc.e_min[bin],
+                                  self.e_max <= rc.e_max[bin])
+            rc.counts[bin] = np.sum(self.counts[bins], 0)
+            rc.efficiency[bin] = np.sum(self.efficiency[bins], 0) / \
+                                 np.count_nonzero(bins)
+        return rc
 
     def stack(self, summand):
         self.counts += summand.counts
