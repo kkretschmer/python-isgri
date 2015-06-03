@@ -37,7 +37,7 @@ class Cube(object):
         self.e_gmean = np.sqrt(self.e_min * self.e_max)
         self.bin_width = bin_width[1:]
 
-    def __init__(self, path=None):
+    def __init__(self, path=None, osacube=False):
         # if path is given, load cube from there, otherwise create
         # empty cube
         #
@@ -103,13 +103,20 @@ class Cube(object):
                 esg.close()
 
         else:
-            self.counts = np.zeros((256, 128, 128), np.int32)
-            self.pixel_eff = np.zeros((128, 128), np.float64)
-            self.low_threshold = np.zeros((256, 128, 128), np.float32)
-            self.valid = np.zeros((128, 128), np.float32)
-            self.duration = 0.0
-            self.mdu_eff = np.zeros((8,), np.float64)
-            self.deadc = np.zeros((8,), np.float64)
+            if osacube:
+                self.default_bins()
+                self.counts = np.zeros((len(self.e_min), 128, 128), np.int16)
+                self.efficiency = np.zeros((len(self.e_min), 128, 128), np.float32)
+                self.duration = 0.0
+            else:
+                self.counts = np.zeros((256, 128, 128), np.int32)
+                self.pixel_eff = np.zeros((128, 128), np.float64)
+                self.low_threshold = np.zeros((256, 128, 128), np.float32)
+                self.valid = np.zeros((128, 128), np.float32)
+                self.duration = 0.0
+                self.mdu_eff = np.zeros((8,), np.float64)
+                self.deadc = np.zeros((8,), np.float64)
+                self.default_bins()
 
     def rebin(self, e_min=None, e_max=None):
         return
