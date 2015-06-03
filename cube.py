@@ -10,6 +10,7 @@ try:
     from astropy.io import fits
 except ImportError:
     import pyfits as fits
+import fitsio
 
 try:
     throng_dir = os.environ['THRONG_DIR']
@@ -78,27 +79,25 @@ class Cube(object):
             except IsADirectoryError:
                 # OSACube
                 #
-                dsg = fits.open(os.path.join(path, self.filenames['dsg']))
-                esg = fits.open(os.path.join(path, self.filenames['esg']))
+                dsg = fitsio.FITS(os.path.join(path, self.filenames['dsg']))
+                esg = fitsio.FITS(os.path.join(path, self.filenames['esg']))
                 grp = dsg['GROUPING']
-                if len(grp.data) == 0:
+                if grp.get_nrows() == 0:
                     self.empty = True
                     return
                 else:
                     self.empty = False
-                self.e_min = grp.data['E_MIN']
-                self.e_max = grp.data['E_MAX']
+                self.e_min = grp['E_MIN'].read()
+                self.e_max = grp['E_MAX'].read()
                 self.e_gmean = np.sqrt(self.e_min * self.e_max)
                 self.bin_width = self.e_max - self.e_min
-                self.duration = grp.data['ONTIME'][0]
+                self.duration = grp['ONTIME'].read()[0]
 
                 self.counts = np.zeros((len(self.e_min), 128, 128), np.int16)
                 self.efficiency = np.zeros((len(self.e_min), 128, 128), np.float32)
-                dsg.readall()
-                esg.readall()
                 for ext in range(2, len(esg)):
-                    self.counts[ext - 2] = dsg[ext].data
-                    self.efficiency[ext - 2] = esg[ext].data
+                    self.counts[ext - 2] = dsg[ext].read()
+                    self.efficiency[ext - 2] = esg[ext].read()
                 dsg.close()
                 esg.close()
 
