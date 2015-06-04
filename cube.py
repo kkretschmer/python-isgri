@@ -21,6 +21,8 @@ byscw_dir = '/Integral/data/reduced/ddcache/byscw'
 
 class Cube(object):
     """Handles ISGRI cubes in IDL and OSACube formats.
+
+    Cube.counts = (E, y, x)
     """
 
     filenames = { 'dsg': 'isgri_detector_shadowgram_BIN_S.fits.gz',
@@ -43,40 +45,10 @@ class Cube(object):
         # empty cube
         #
         if path:
-            # try to open the provided path as FITS file (IDL cube),
-            # otherwise as directory containing OSACube files
+            # if path is a directory, assume it contains OSACube files
+            # otherwise try to open the provided path as FITS file (IDL cube)
             #
-            try:
-                # IDL cube
-                #
-                ff = fits.open(path)
-                fits.verify('ignore')
-                self.counts, self.pixel_eff, \
-                    self.low_threshold, self.valid = \
-                        [ff[i].data for i in range(0, 4)]
-                self.duration = ff[0].header['DURATION']
-                self.mdu_eff = np.array([ff[0].header['MDU%1i_EFF' % i] \
-                                         for i in range(0, 8)])
-                self.deadc = np.array([ff[0].header['DEADC%1i' % i] \
-                                       for i in range(0, 8)])
-                ff.close()
-                self.default_bins()
-
-                # calculate efficiency shadowgram
-                #
-                pixel_mod_eff = self.pixel_eff * self.valid
-                for i in self.mdus:
-                    origin = self.mdu_origins[i]
-                    pixel_mod_eff[origin[0]:origin[0]+32,
-                                  origin[1]:origin[1]+64] *= \
-                        self.mdu_eff[i] * (1 - self.deadc[i])
-                self.pixel_mod_eff = pixel_mod_eff
-                self.efficiency = np.tile(np.array(pixel_mod_eff,
-                                                   dtype=np.float32),
-                                          (256, 1, 1))
-                self.efficiency *= self.low_threshold
-
-            except IsADirectoryError:
+            if os.path.isdir(path):
                 # OSACube
                 #
                 def open_file(id):
@@ -106,6 +78,37 @@ class Cube(object):
                 esg = open_file('esg')
                 self.efficiency = read_images(esg)
                 esg.close()
+
+            else:
+                # IDL cube
+                #
+                ff = fits.open(path)
+                fits.verify('ignore')
+                self.counts, self.pixel_eff, \
+                    self.low_threshold, self.valid = \
+                        [ff[i].data for i in range(0, 4)]
+                self.duration = ff[0].header['DURATION']
+                self.mdu_eff = np.array([ff[0].header['MDU%1i_EFF' % i] \
+                                         for i in range(0, 8)])
+                self.deadc = np.array([ff[0].header['DEADC%1i' % i] \
+                                       for i in range(0, 8)])
+                ff.close()
+                self.default_bins()
+
+                # calculate efficiency shadowgram
+                #
+                pixel_mod_eff = self.pixel_eff * self.valid
+                for i in self.mdus:
+                    origin = self.mdu_origins[i]
+                    pixel_mod_eff[origin[0]:origin[0]+32,
+                                  origin[1]:origin[1]+64] *= \
+                        self.mdu_eff[i] * (1 - self.deadc[i])
+                self.pixel_mod_eff = pixel_mod_eff
+                self.efficiency = np.tile(np.array(pixel_mod_eff,
+                                                   dtype=np.float32),
+                                          (256, 1, 1))
+                self.efficiency *= self.low_threshold
+
 
         else:
             if osacube:
