@@ -79,8 +79,10 @@ class Cube(object):
             except IsADirectoryError:
                 # OSACube
                 #
-                dsg = fitsio.FITS(os.path.join(path, self.filenames['dsg']))
-                esg = fitsio.FITS(os.path.join(path, self.filenames['esg']))
+                def open_file(id):
+                    return fitsio.FITS(os.path.join(path, self.filenames[id]))
+
+                dsg = open_file('dsg')
                 grp = dsg['GROUPING']
                 if grp.get_nrows() == 0:
                     self.empty = True
@@ -92,13 +94,17 @@ class Cube(object):
                 self.e_gmean = np.sqrt(self.e_min * self.e_max)
                 self.bin_width = self.e_max - self.e_min
                 self.duration = grp['ONTIME'].read()[0]
+                exts = grp['MEMBER_POSITION'][:] - 1
 
-                self.counts = np.zeros((len(self.e_min), 128, 128), np.int16)
-                self.efficiency = np.zeros((len(self.e_min), 128, 128), np.float32)
-                for ext in range(2, len(esg)):
-                    self.counts[ext - 2] = dsg[ext].read()
-                    self.efficiency[ext - 2] = esg[ext].read()
+                def read_images(sg):
+                    return np.vstack(
+                        [np.reshape(sg[e].read(), (1, 128, 128)) for e in exts])
+
+                self.counts = read_images(dsg)
                 dsg.close()
+
+                esg = open_file('esg')
+                self.efficiency = read_images(esg)
                 esg.close()
 
         else:
