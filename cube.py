@@ -239,5 +239,6 @@ def osacubes(scwids):
                 return Cube(os.path.join(byscw_dir, cubes[ver]))
 
     cubes = [best_cube(id) for id in ids]
-    cubes = [cube for cube in cubes if not cube.empty]
-    return cubes
+    idx = np.where(cubes)[0]
+    ids = ids_wanted[idx]
+    return [cubes[i] for i in idx], ids
