@@ -93,6 +93,13 @@ class Cube(object):
                 for attr in ('counts', 'efficiency'):
                     setattr(self, attr, \
                         np.ma.MaskedArray(getattr(self, attr), mask))
+                self.mdu_eff = np.zeros_like(self.mdus, dtype=float)
+                for i in self.mdus:
+                    origin = self.mdu_origins[i]
+                    self.mdu_eff[i] = np.max(
+                        self.efficiency[:, origin[0]:origin[0]+32,
+                                        origin[1]:origin[1]+64])
+                self.mdu_eff /= np.max(self.mdu_eff)
 
             else:
                 # IDL cube
