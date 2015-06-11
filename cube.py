@@ -137,9 +137,16 @@ class Cube(object):
                 self.deadc = np.zeros((8,), np.float64)
                 self.default_bins()
 
-    def rebin(self, e_min=None, e_max=None):
+    def rebin(self, e_min=0, e_max=np.inf):
         rc = Cube(osacube=True)
-        rc.duration = self.duration
+        setattr(rc, 'duration', self.duration)
+        setattr(rc, 'header_fields', self.header_fields)
+        for keyword in self.header_fields:
+            setattr(rc, keyword.lower(), getattr(self, keyword.lower()))
+        e_idx = np.logical_and(rc.e_min >= e_min, rc.e_max <= e_max)
+        rc.e_min, rc.e_max = rc.e_min[e_idx], rc.e_max[e_idx]
+        rc.counts = np.zeros((len(rc.e_min), 128, 128), np.int16)
+        rc.efficiency = np.zeros((len(rc.e_min), 128, 128), np.float32)
         for bin in range(len(rc.e_min)):
             bins = np.logical_and(self.e_min >= rc.e_min[bin],
                                   self.e_max <= rc.e_max[bin])
@@ -223,7 +230,7 @@ def osacubes_avail():
                 revs[rev][scwid][id] = dir
     return revs
 
-def osacubes(scwids):
+def osacubes(scwids, e_min=None, e_max=None):
     """Find OSA cubes matching the provided list of science window IDs
     """
     ids_wanted = np.array(scwids, dtype=np.uint64)
@@ -247,7 +254,11 @@ def osacubes(scwids):
         cubes = revs[rev][scw]
         for ver in ver_order:
             if ver in cubes.keys():
-                return Cube(os.path.join(byscw_dir, cubes[ver]))
+                cube = Cube(os.path.join(byscw_dir, cubes[ver]))
+                if e_min or e_max:
+                    return cube.rebin(e_min, e_max)
+                else:
+                    return cube
 
     cubes = [best_cube(id) for id in ids]
     idx = np.where(cubes)[0]
