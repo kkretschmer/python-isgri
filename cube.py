@@ -85,14 +85,29 @@ class Cube(object):
                 esg = open_file('esg')
                 self.efficiency = read_images(esg)
                 esg.close()
+                invalid = np.all(self.efficiency == 0, 0)
+                self.valid = np.logical_not(invalid)
+                mask = np.repeat(
+                    np.expand_dims(invalid, 0),
+                    len(self.e_min), 0)
+                for attr in ('counts', 'efficiency'):
+                    setattr(self, attr, \
+                        np.ma.MaskedArray(getattr(self, attr), mask))
 
             else:
                 # IDL cube
                 #
+                self.default_bins()
                 ff = fitsio.FITS(path)
-                self.counts, self.pixel_eff, \
-                    self.low_threshold, self.valid = \
-                        [ff[i].read() for i in range(4)]
+                self.valid = ff[3].read()
+                invalid = self.valid == 0
+                self.pixel_eff = np.ma.MaskedArray(ff[1].read(), invalid,
+                                                   dtype=np.float32)
+                mask = np.repeat(
+                    np.expand_dims(invalid, 0),
+                    len(self.e_min), 0)
+                self.counts, self.low_threshold = \
+                        [np.ma.MaskedArray(ff[i].read(), mask) for i in (0, 2)]
                 header = ff[0].read_header()
                 self.duration = header['DURATION']
                 self.mdu_eff = np.array([header['MDU%1i_EFF' % i] \
@@ -100,22 +115,18 @@ class Cube(object):
                 self.deadc = np.array([header['DEADC%1i' % i] \
                                        for i in self.mdus])
                 ff.close()
-                self.default_bins()
 
                 # calculate efficiency shadowgram
                 #
-                pixel_mod_eff = self.pixel_eff * self.valid
+                self.pixel_mod_eff = np.copy(self.pixel_eff)
                 for i in self.mdus:
                     origin = self.mdu_origins[i]
-                    pixel_mod_eff[origin[0]:origin[0]+32,
-                                  origin[1]:origin[1]+64] *= \
+                    self.pixel_mod_eff[origin[0]:origin[0]+32,
+                                       origin[1]:origin[1]+64] *= \
                         self.mdu_eff[i] * (1 - self.deadc[i])
-                self.pixel_mod_eff = pixel_mod_eff
-                self.efficiency = np.tile(np.array(pixel_mod_eff,
-                                                   dtype=np.float32),
-                                          (256, 1, 1))
-                self.efficiency *= self.low_threshold
-
+                self.efficiency = np.repeat(
+                    np.expand_dims(self.pixel_mod_eff, 0),
+                    len(self.e_min), 0) * self.low_threshold
 
         else:
             if osacube:
