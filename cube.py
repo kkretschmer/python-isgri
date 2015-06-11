@@ -6,10 +6,6 @@ import re
 
 import numpy as np
 import matplotlib.pyplot as plt
-try:
-    from astropy.io import fits
-except ImportError:
-    import pyfits as fits
 import fitsio
 
 try:
@@ -93,16 +89,16 @@ class Cube(object):
             else:
                 # IDL cube
                 #
-                ff = fits.open(path)
-                fits.verify('ignore')
+                ff = fitsio.FITS(path)
                 self.counts, self.pixel_eff, \
                     self.low_threshold, self.valid = \
-                        [ff[i].data for i in range(0, 4)]
-                self.duration = ff[0].header['DURATION']
-                self.mdu_eff = np.array([ff[0].header['MDU%1i_EFF' % i] \
-                                         for i in range(0, 8)])
-                self.deadc = np.array([ff[0].header['DEADC%1i' % i] \
-                                       for i in range(0, 8)])
+                        [ff[i].read() for i in range(4)]
+                header = ff[0].read_header()
+                self.duration = header['DURATION']
+                self.mdu_eff = np.array([header['MDU%1i_EFF' % i] \
+                                         for i in self.mdus])
+                self.deadc = np.array([header['DEADC%1i' % i] \
+                                       for i in self.mdus])
                 ff.close()
                 self.default_bins()
 
