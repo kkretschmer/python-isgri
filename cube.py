@@ -61,12 +61,23 @@ class Cube(object):
                     return
                 else:
                     self.empty = False
+
                 self.e_min = grp['E_MIN'].read()
                 self.e_max = grp['E_MAX'].read()
                 self.e_gmean = np.sqrt(self.e_min * self.e_max)
                 self.bin_width = self.e_max - self.e_min
                 self.duration = grp['ONTIME'].read()[0]
                 exts = grp['MEMBER_POSITION'][:] - 1
+
+                # read the specified field from the header of the first
+                # detector shadowgram HDU
+                #
+                self.header_fields = ('TSTART', 'TSTOP', 'TFIRST', 'TLAST', 'TELAPSE',
+                          'ONTIME', 'DEADC', 'EXPOSURE', 'LIVETIME',
+                          'RISE_MIN', 'RISE_MAX')
+                header = dsg['ISGR-DETE-SHD'].read_header()
+                for keyword in self.header_fields:
+                    setattr(self, keyword.lower(), header[keyword])
 
                 def read_images(sg):
                     return np.vstack(
