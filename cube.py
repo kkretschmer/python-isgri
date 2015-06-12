@@ -47,6 +47,10 @@ class Cube(object):
             if os.path.isdir(path):
                 # OSACube
                 #
+                self.type = 'OSA'
+                match = re.compile('/(\d{12})\.\d{3}/').search(path)
+                if match:
+                    self.scwid = match.groups()[0]
                 def open_file(id):
                     return fitsio.FITS(os.path.join(path, self.filenames[id]))
 
@@ -104,6 +108,10 @@ class Cube(object):
             else:
                 # IDL cube
                 #
+                self.type = 'IDL'
+                match = re.compile('/(\d{12})\D').search(path)
+                if match:
+                    self.scwid = match.groups()[0]
                 self.default_bins()
                 ff = fitsio.FITS(path)
                 self.valid = ff[3].read()
