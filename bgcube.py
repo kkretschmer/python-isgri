@@ -24,6 +24,15 @@ class Cube(object):
             [bm_fits[pos - 1].data for pos in grp.data['MEMBER_POSITION']])
         bm_fits.close()
 
-    def image(self, e_min=0, e_max=np.inf):
-        bins = np.logical_and(self.e_min >= e_min, self.e_max <= e_max)
-        return np.sum(self.data[:, :, bins], 2)
+    def rate_shadowgram(self, e_min=0, e_max=np.inf):
+        """Shadowgram of count rate, optionally for a subset of the energy range
+
+        unit: cts.s-1.keV-1
+        """
+        e_idx = np.logical_and(self.e_min >= e_min, self.e_max <= e_max)
+        norm = 1 / np.sum(self.e_max[e_idx] - self.e_min[e_idx])
+        return np.delete(
+            np.delete(
+                np.sum(self.data[:, :, e_idx], 2),
+                (64, 65), 1),
+            (32, 33, 66, 67, 100, 101), 0) * norm

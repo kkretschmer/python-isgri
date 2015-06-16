@@ -196,9 +196,20 @@ class Cube(object):
     def spectrum(self):
         return self.counts.sum((1, 2))
 
-    def image(self, e_min=0, e_max=np.inf):
+    def rate_shadowgram(self, e_min=0, e_max=np.inf, sigma=None):
+        """Shadowgram of count rate, optionally for a subset of the energy range
+
+        unit: cts.s-1.keV-1
+        """
         e_idx = np.logical_and(self.e_min >= e_min, self.e_max <= e_max)
-        return self.counts[e_idx, :, :].sum(0)
+        norm = 1 / (self.duration * np.sum(self.bin_width[e_idx]))
+        rate = (self.counts[e_idx] / \
+                self.efficiency[e_idx]).sum(0) * norm
+        if sigma is not None:
+            sigma = np.sqrt(self.counts[e_idx].sum(0))
+            return (rate, rate / sigma)
+        else:
+            return rate
 
     def corr_shad(self):
         rate = np.array(self.counts, dtype='float64')
