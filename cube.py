@@ -263,7 +263,7 @@ def osacubes_avail():
                 revs[rev][scwid][id] = dir
     return revs
 
-def osacubes(scwids, e_min=None, e_max=None):
+def osacubes(scwids):
     """Find OSA cubes matching the provided list of science window IDs
     """
     ids_wanted = np.array(scwids, dtype=np.uint64)
@@ -287,11 +287,7 @@ def osacubes(scwids, e_min=None, e_max=None):
         cubes = revs[rev][scw]
         for ver in ver_order:
             if ver in cubes.keys():
-                cube = Cube(os.path.join(byscw_dir, cubes[ver]))
-                if e_min or e_max:
-                    return cube.rebin(e_min, e_max)
-                else:
-                    return cube
+                return os.path.join(byscw_dir, cubes[ver])
 
     cubes = [best_cube(id) for id in ids]
     idx = np.where(cubes)[0]
