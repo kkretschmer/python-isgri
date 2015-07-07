@@ -54,7 +54,11 @@ class Cube(object):
                 def open_file(id):
                     return fitsio.FITS(os.path.join(path, self.filenames[id]))
 
-                dsg = open_file('dsg')
+                try:
+                    dsg = open_file('dsg')
+                except IOError:
+                    self.empty = True
+                    return
                 grp = dsg['GROUPING']
                 if grp.get_nrows() == 0:
                     self.empty = True
@@ -86,7 +90,11 @@ class Cube(object):
                 self.counts = read_images(dsg)
                 dsg.close()
 
-                esg = open_file('esg')
+                try:
+                    esg = open_file('esg')
+                except IOError:
+                    self.empty = True
+                    return
                 self.efficiency = read_images(esg)
                 esg.close()
                 invalid = np.all(self.efficiency == 0, 0)
