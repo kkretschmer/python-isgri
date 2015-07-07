@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+#
 """Accesses INTEGRAL/ISGRI IDL/OSA data cubes
 """
 
@@ -301,3 +303,15 @@ def osacubes(scwids):
     idx = np.where(cubes)[0]
     ids = ids_wanted[idx]
     return [cubes[i] for i in idx], ids
+
+def modules(input_cube):
+    """split a shadow-gram into its constituent modules,
+    rotating modules 4-7 by 180° to match 0-3"""
+    mod_order = np.array([7, 6, 5, 4, 0, 1, 2, 3])
+    cube = np.expand_dims(input_cube, 1)
+    halves = np.split(cube, 2, 3)
+    halves[0] = halves[0][:, :, ::-1, ::-1]
+    half_stack = np.concatenate(halves, axis=2)
+    modules = np.split(half_stack, 8, 2)
+    mod_stack = np.concatenate(modules, axis=1)
+    return mod_stack[:, mod_order]
