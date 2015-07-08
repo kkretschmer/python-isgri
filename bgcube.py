@@ -45,7 +45,7 @@ class BackgroundBuilder(object):
     def __init__(self, scwids):
         self.scwids = np.array(scwids, dtype=np.uint64)
         self.eff_min = 0.2
-        self.sig_e_range = range(60, 80)
+        self.sig_e_range = (60, 80)
         self.sig_thresholds = (-2.5, 2.5)
 
     def ps_efficiency_threshold(self, cube):
@@ -58,8 +58,8 @@ class BackgroundBuilder(object):
 
     def ps_not_outlier(self, cube, write_fits=False):
         ps = np.ones_like(cube.counts, dtype=np.bool)
-        sg, sg_sig = cube.rate_shadowgram(self.sig_e_range.start,
-                                          self.sig_e_range.stop, True)
+        sg, sg_sig = cube.rate_shadowgram(self.sig_e_range[0],
+                                          self.sig_e_range[-1], True)
         mi, di = sg.mean(), sg.std()
         dark, hot = \
             np.logical_and(sg.data < mi + di * self.sig_thresholds[0],
@@ -75,7 +75,12 @@ class BackgroundBuilder(object):
             fitsfile = 'ps_not_outlier/{0}/{1}.fits'.format(
                 cube.scwid[0:4], cube.scwid)
             hdu = fits.PrimaryHDU(pixels)
-            os.makedirs(os.path.dirname(fitsfile), exist_ok=True)
+            path = os.path.dirname(fitsfile)
+            try:
+                os.makedirs(path)
+            except OSError:
+                if not os.path.isdir(path):
+                    raise
             hdu.writeto(fitsfile, clobber=True)
         return ps
 
