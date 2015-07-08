@@ -7,7 +7,9 @@ try:
 except ImportError:
     import pyfits as fits
 
-class Cube(object):
+from . import cube
+
+class BGCube(object):
     """Handles ISGRI background maps
     """
     mdus = range(0, 8)
