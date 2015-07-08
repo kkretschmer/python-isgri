@@ -48,10 +48,19 @@ class BackgroundBuilder(object):
         self.sig_e_range = range(60, 80)
         self.sig_thresholds = (-2.5, 2.5)
 
+    def ps_efficiency_threshold(self, cube):
+        return cube.efficiency >= self.eff_min
+
+    def ps_pixel_efficiency(self, cube):
+        ps = np.ones_like(cube.counts, dtype=np.bool)
+        ps[:, cube.efficiency[-1] < self.eff_min] = False
+        return ps
+
     def read_cubes(self):
         osacubes, ids = cube.osacubes(self.scwids)
         bgcube = cube.Cube(osacube=True)
         selectors = [
+            {'fn': self.ps_pixel_efficiency, 'args': (), 'kwargs': {}},
         ]
         logger = logging.getLogger('read_cubes')
         logger.setLevel(logging.DEBUG)
