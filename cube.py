@@ -173,9 +173,8 @@ class Cube(object):
 
     def rebin(self, e_min=0, e_max=np.inf):
         rc = Cube(osacube=True)
-        setattr(rc, 'duration', self.duration)
-        setattr(rc, 'header_fields', self.header_fields)
-        for keyword in self.header_fields:
+        copy_attrs = ('scwid', 'duration', 'header_fields')
+        for keyword in copy_attrs + self.header_fields:
             setattr(rc, keyword.lower(), getattr(self, keyword.lower()))
         e_idx = np.logical_and(rc.e_min >= e_min, rc.e_max <= e_max)
         rc.e_min, rc.e_max = rc.e_min[e_idx], rc.e_max[e_idx]
