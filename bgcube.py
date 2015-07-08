@@ -92,6 +92,8 @@ class BackgroundBuilder(object):
         fh.setLevel(logging.DEBUG)
         ch = logging.StreamHandler()
         ch.setLevel(logging.INFO)
+        logger.addHandler(fh)
+        logger.addHandler(ch)
         for path in osacubes:
             oc = cube.Cube(path).rebin()
             idx = np.logical_not(oc.counts.mask)
