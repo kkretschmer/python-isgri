@@ -155,11 +155,13 @@ class Cube(object):
 
         else:
             if osacube:
+                self.type = 'OSA'
                 self.default_bins()
                 self.counts = np.ma.zeros((len(self.e_min), 128, 128), np.int16)
                 self.efficiency = np.ma.zeros((len(self.e_min), 128, 128), np.float32)
                 self.duration = 0.0
             else:
+                self.type = 'IDL'
                 self.counts = np.ma.zeros((256, 128, 128), np.int32)
                 self.pixel_eff = np.ma.zeros((128, 128), np.float64)
                 self.low_threshold = np.ma.zeros((256, 128, 128), np.float32)
