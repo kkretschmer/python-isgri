@@ -1,0 +1,32 @@
+#!/usr/bin/python
+#
+
+import os
+import numpy as np
+try:
+    from astropy.io import fits
+except ImportError:
+    import pyfits as fits
+
+from integral.isgri import bgcube
+
+srcsig_pre = np.loadtxt('/data/integral/srcsig-predictable.log_2015-06-27T16:08:58', usecols=(0,1))
+sig_max = 20.0
+
+idx_lowsrc = srcsig_pre[:, 1] <= sig_max
+scw_lowsrc = srcsig_pre[idx_lowsrc, 0]
+
+bgb = bgcube.BackgroundBuilder(scw_lowsrc)
+bgcube = bgb.read_cubes()
+
+hdu_pri = fits.PrimaryHDU()
+hdu_cts = fits.ImageHDU(np.ma.filled(bgcube.counts, 0))
+hdu_cts.header['EXTNAME'] = 'COUNTS'
+hdu_eff = fits.ImageHDU(np.ma.filled(bgcube.efficiency, -1))
+hdu_eff.header['EXTNAME'] = 'EXPOSURE'
+for hdu in [hdu_cts, hdu_eff]:
+    for keyword in ('duration', 'ontime'):
+        hdu.header[keyword] = getattr(bgcube, keyword)
+fitsfile = 'bgcube.fits'
+hdulist = fits.HDUList([hdu_pri, hdu_cts, hdu_eff])
+hdulist.writeto(fitsfile, clobber=True)
