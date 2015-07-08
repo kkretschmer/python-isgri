@@ -108,4 +108,5 @@ class BackgroundBuilder(object):
                 bgcube.counts[idx] += oc.counts[idx]
                 bgcube.efficiency[idx] += oc.efficiency[idx] * oc.duration
                 bgcube.duration += oc.duration
+                bgcube.ontime += oc.ontime
         return bgcube
