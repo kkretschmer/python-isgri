@@ -82,6 +82,7 @@ class BackgroundBuilder(object):
     def read_cubes(self):
         osacubes, ids = cube.osacubes(self.scwids)
         bgcube = cube.Cube(osacube=True)
+        bgcube.counts = np.ma.asarray(bgcube.counts, np.uint32)
         selectors = [
             {'fn': self.ps_pixel_efficiency, 'args': (), 'kwargs': {}},
             {'fn': self.ps_not_outlier, 'args': (), 'kwargs': {'write_fits': True}}
