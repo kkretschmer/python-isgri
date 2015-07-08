@@ -56,11 +56,35 @@ class BackgroundBuilder(object):
         ps[:, cube.efficiency[-1] < self.eff_min] = False
         return ps
 
+    def ps_not_outlier(self, cube, write_fits=False):
+        ps = np.ones_like(cube.counts, dtype=np.bool)
+        sg, sg_sig = cube.rate_shadowgram(self.sig_e_range.start,
+                                          self.sig_e_range.stop, True)
+        mi, di = sg.mean(), sg.std()
+        dark, hot = \
+            np.logical_and(sg.data < mi + di * self.sig_thresholds[0],
+                           np.logical_not(sg.mask)), \
+            np.logical_and(sg.data > mi + di * self.sig_thresholds[1],
+                           np.logical_not(sg.mask))
+        ps[:, np.logical_or(dark, hot)] = False
+        if write_fits:
+            pixels = np.zeros(sg.shape, dtype=np.ubyte)
+            pixels[sg.mask == True] += 1
+            pixels[dark] += 2
+            pixels[hot] += 4
+            fitsfile = 'ps_not_outlier/{0}/{1}.fits'.format(
+                cube.scwid[0:4], cube.scwid)
+            hdu = fits.PrimaryHDU(pixels)
+            os.makedirs(os.path.dirname(fitsfile), exist_ok=True)
+            hdu.writeto(fitsfile, clobber=True)
+        return ps
+
     def read_cubes(self):
         osacubes, ids = cube.osacubes(self.scwids)
         bgcube = cube.Cube(osacube=True)
         selectors = [
             {'fn': self.ps_pixel_efficiency, 'args': (), 'kwargs': {}},
+            {'fn': self.ps_not_outlier, 'args': (), 'kwargs': {'write_fits': True}}
         ]
         logger = logging.getLogger('read_cubes')
         logger.setLevel(logging.DEBUG)
