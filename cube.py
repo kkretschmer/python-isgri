@@ -156,13 +156,13 @@ class Cube(object):
         else:
             if osacube:
                 self.default_bins()
-                self.counts = np.zeros((len(self.e_min), 128, 128), np.int16)
-                self.efficiency = np.zeros((len(self.e_min), 128, 128), np.float32)
+                self.counts = np.ma.zeros((len(self.e_min), 128, 128), np.int16)
+                self.efficiency = np.ma.zeros((len(self.e_min), 128, 128), np.float32)
                 self.duration = 0.0
             else:
-                self.counts = np.zeros((256, 128, 128), np.int32)
-                self.pixel_eff = np.zeros((128, 128), np.float64)
-                self.low_threshold = np.zeros((256, 128, 128), np.float32)
+                self.counts = np.ma.zeros((256, 128, 128), np.int32)
+                self.pixel_eff = np.ma.zeros((128, 128), np.float64)
+                self.low_threshold = np.ma.zeros((256, 128, 128), np.float32)
                 self.valid = np.zeros((128, 128), np.float32)
                 self.duration = 0.0
                 self.mdu_eff = np.zeros((8,), np.float64)
@@ -177,8 +177,8 @@ class Cube(object):
             setattr(rc, keyword.lower(), getattr(self, keyword.lower()))
         e_idx = np.logical_and(rc.e_min >= e_min, rc.e_max <= e_max)
         rc.e_min, rc.e_max = rc.e_min[e_idx], rc.e_max[e_idx]
-        rc.counts = np.zeros((len(rc.e_min), 128, 128), np.int16)
-        rc.efficiency = np.zeros((len(rc.e_min), 128, 128), np.float32)
+        rc.counts = np.ma.zeros((len(rc.e_min), 128, 128), np.int16)
+        rc.efficiency = np.ma.zeros((len(rc.e_min), 128, 128), np.float32)
         for bin in range(len(rc.e_min)):
             bins = np.logical_and(self.e_min >= rc.e_min[bin],
                                   self.e_max <= rc.e_max[bin])
@@ -234,7 +234,7 @@ class Cube(object):
         e = np.logical_and(self.e_min >= e_min, self.e_max <= e_max)
         print(self.e_min[e])
         shd = self.corr_shad()[e, :, :].sum(0)
-        dpi = np.zeros((134, 130))
+        dpi = np.ma.zeros((134, 130))
         for y in (64, 65):
             dpi[:, y] = np.nan
         for z in (32, 33, 66, 67, 100, 101):
