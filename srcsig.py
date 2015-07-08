@@ -71,5 +71,8 @@ def isgri_sky_res(scwids):
                     if np.count_nonzero(idx) > 0:
                         ext = grp['MEMBER_POSITION'][idx][0] - 1
                         detsig = isr[ext].data['DETSIG']
-                        print('{0:012d}\t{1:0.1f}\t{2}'.format(i,
-                                                               np.sqrt((detsig**2).sum()), ','.join(['{0:0.1f}'.format(s) for s in detsig])))
+                        rms = np.sqrt((detsig**2).sum())
+                        sigs = ','.join(['{0:0.1f}'.format(s) for s in detsig])
+                        fmt = '{0:012d}\t{1:0.1f}\t{2}'
+                        print(fmt.format(i, rms, sigs))
+                    isr.close()

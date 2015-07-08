@@ -1,6 +1,8 @@
 """Accesses INTEGRAL/ISGRI background maps/cubes
 """
 
+import logging
+import os
 import numpy as np
 try:
     from astropy.io import fits
@@ -38,3 +40,39 @@ class BGCube(object):
                 np.sum(self.data[:, :, e_idx], 2),
                 (64, 65), 1),
             (32, 33, 66, 67, 100, 101), 0) * norm
+
+class BackgroundBuilder(object):
+    def __init__(self, scwids):
+        self.scwids = np.array(scwids, dtype=np.uint64)
+        self.eff_min = 0.2
+        self.sig_e_range = range(60, 80)
+        self.sig_thresholds = (-2.5, 2.5)
+
+    def read_cubes(self):
+        osacubes, ids = cube.osacubes(self.scwids)
+        bgcube = cube.Cube(osacube=True)
+        selectors = [
+        ]
+        logger = logging.getLogger('read_cubes')
+        logger.setLevel(logging.DEBUG)
+        fh = logging.FileHandler('read_cubes.log')
+        fh.setLevel(logging.DEBUG)
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.INFO)
+        for path in osacubes:
+            oc = cube.Cube(path).rebin()
+            idx = np.logical_not(oc.counts.mask)
+            logger.info('{0}: loaded'.format(oc.scwid))
+            logger.debug('{0}: {1} px valid'.format(
+                oc.scwid, np.count_nonzero(idx)))
+            for sel in selectors:
+                idx = np.logical_and(
+                    idx,
+                    sel['fn'](oc, *sel['args'], **sel['kwargs'])
+                )
+                logger.debug('{0}: loaded, {1}, {2} px valid'.format(
+                    oc.scwid, repr(sel['fn']), np.count_nonzero(idx)))
+                bgcube.counts[idx] += oc.counts[idx]
+                bgcube.efficiency[idx] += oc.efficiency[idx] * oc.duration
+                bgcube.duration += oc.duration
+        return bgcube
