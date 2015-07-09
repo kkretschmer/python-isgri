@@ -10,7 +10,22 @@ except ImportError:
 
 from integral.isgri import bgcube
 
-srcsig_pre = np.loadtxt('/data/integral/srcsig-predictable.log_2015-06-27T16:08:58', usecols=(0,1))
+# Prefer prefixed paths when available for higher read performance
+#
+for attr in ('throng_dir', 'byscw_dir'):
+    for prefix in (os.path.join('/tmp', os.environ['USER']), None):
+        path = getattr(bgcube.cube, attr)
+        if prefix:
+            path_new = os.path.join(prefix, os.path.relpath(path, '/'))
+            if os.path.isdir(path_new):
+                setattr(bgcube.cube, attr, path_new)
+            break
+
+print('Loading from:')
+print(bgcube.cube.throng_dir)
+print(bgcube.cube.byscw_dir)
+
+srcsig_pre = np.loadtxt('srcsig-predictable.log', usecols=(0,1))
 sig_max = 20.0
 
 idx_lowsrc = srcsig_pre[:, 1] <= sig_max
