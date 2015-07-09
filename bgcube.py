@@ -1,8 +1,10 @@
 """Accesses INTEGRAL/ISGRI background maps/cubes
 """
 
+import io
 import logging
 import os
+import sqlite3
 import numpy as np
 try:
     from astropy.io import fits
@@ -68,29 +70,33 @@ class BackgroundBuilder(object):
                            np.logical_not(sg.mask))
         ps[:, np.logical_or(dark, hot)] = False
         if write_fits:
+            cursor = write_fits
+            cursor.execute('''CREATE TABLE IF NOT EXISTS ps_not_outlier
+                (scwid TEXT PRIMARY KEY, fits BLOB)''')
             pixels = np.zeros(sg.shape, dtype=np.ubyte)
             pixels[sg.mask == True] += 1
             pixels[dark] += 2
             pixels[hot] += 4
-            fitsfile = 'ps_not_outlier/{0}/{1}.fits'.format(
-                cube.scwid[0:4], cube.scwid)
             hdu = fits.PrimaryHDU(pixels)
-            path = os.path.dirname(fitsfile)
-            try:
-                os.makedirs(path)
-            except OSError:
-                if not os.path.isdir(path):
-                    raise
-            hdu.writeto(fitsfile, clobber=True)
+            blob = io.BytesIO()
+            hdu.writeto(blob)
+            cursor.execute('''INSERT OR REPLACE INTO ps_not_outlier
+                (scwid, fits) VALUES (?, ?)''', (cube.scwid, blob.getvalue()))
+            blob.close()
         return ps
 
     def read_cubes(self):
         osacubes, ids = cube.osacubes(self.scwids)
         bgcube = cube.Cube(osacube=True)
         bgcube.counts = np.ma.asarray(bgcube.counts, np.uint32)
+
+        conn = sqlite3.connect('bgcube.sqlite')
+        cursor = conn.cursor()
+
         selectors = [
             {'fn': self.ps_pixel_efficiency, 'args': (), 'kwargs': {}},
-            {'fn': self.ps_not_outlier, 'args': (), 'kwargs': {'write_fits': True}}
+            {'fn': self.ps_not_outlier, 'args': (),
+             'kwargs': {'write_fits': cursor}}
         ]
         logger = logging.getLogger('read_cubes')
         logger.setLevel(logging.DEBUG)
