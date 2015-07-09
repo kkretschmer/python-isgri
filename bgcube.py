@@ -107,22 +107,29 @@ class BackgroundBuilder(object):
         logger.addHandler(fh)
         logger.addHandler(ch)
         for path in osacubes:
-            oc = cube.Cube(path)
-            if oc.empty: continue
-            oc = oc.rebin()
-            idx = np.logical_not(oc.counts.mask)
-            logger.info('{0}: loaded'.format(oc.scwid))
-            logger.debug('{0}: {1} px valid'.format(
-                oc.scwid, np.count_nonzero(idx)))
-            for sel in selectors:
-                idx = np.logical_and(
-                    idx,
-                    sel['fn'](oc, *sel['args'], **sel['kwargs'])
-                )
-                logger.debug('{0}: loaded, {1}, {2} px valid'.format(
-                    oc.scwid, repr(sel['fn']), np.count_nonzero(idx)))
-                bgcube.counts[idx] += oc.counts[idx]
-                bgcube.efficiency[idx] += oc.efficiency[idx] * oc.duration
-                bgcube.duration += oc.duration
-                bgcube.ontime += oc.ontime
+            try:
+                oc = cube.Cube(path)
+                if oc.empty: continue
+                if np.count_nonzero(oc.efficiency) == 0: continue
+                oc = oc.rebin()
+                idx = np.logical_not(oc.counts.mask)
+                logger.info('{0}: loaded'.format(oc.scwid))
+                logger.debug('{0}: {1} bin*px valid'.format(
+                    oc.scwid, np.count_nonzero(idx)))
+                for sel in selectors:
+                    idx = np.logical_and(
+                        idx,
+                        sel['fn'](oc, *sel['args'], **sel['kwargs'])
+                    )
+                    logger.debug('{0}: {1}, {2} bin*px valid'.format(
+                        oc.scwid, repr(sel['fn']), np.count_nonzero(idx)))
+            except:
+                logger.error('{0}: failed'.format(oc.scwid))
+                continue
+
+            bgcube.counts[idx] += oc.counts[idx]
+            bgcube.efficiency[idx] += oc.efficiency[idx] * oc.duration
+            bgcube.duration += oc.duration
+            bgcube.ontime += oc.ontime
+
         return bgcube
