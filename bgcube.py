@@ -101,7 +101,9 @@ class BackgroundBuilder(object):
         logger.addHandler(fh)
         logger.addHandler(ch)
         for path in osacubes:
-            oc = cube.Cube(path).rebin()
+            oc = cube.Cube(path)
+            if oc.empty: continue
+            oc = oc.rebin()
             idx = np.logical_not(oc.counts.mask)
             logger.info('{0}: loaded'.format(oc.scwid))
             logger.debug('{0}: {1} px valid'.format(

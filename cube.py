@@ -174,6 +174,9 @@ class Cube(object):
 
     def rebin(self, e_min=0, e_max=np.inf):
         rc = Cube(osacube=True)
+        if self.empty:
+            setattr(rc, 'empty', True)
+            return rc
         copy_attrs = ('scwid', 'duration', 'header_fields')
         for keyword in copy_attrs + self.header_fields:
             setattr(rc, keyword.lower(), getattr(self, keyword.lower()))
