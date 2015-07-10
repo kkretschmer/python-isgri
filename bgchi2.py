@@ -59,7 +59,7 @@ def chi2_per_rev():
     avail = cube.osacubes_avail()
     revs = sorted(avail.keys())
     cubes = []
-    for i_rev in range(0, len(revs) + 1, len(revs) // 10):
+    for i_rev in range(0, len(revs)):
         rev = revs[i_rev]
         ids = sorted(avail[rev])
         scw = ids[len(ids) // 2]
