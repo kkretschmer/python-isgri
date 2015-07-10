@@ -1,4 +1,7 @@
-"""Handles the response of ISGRI to isotropically incoming radiation
+# -*- coding: utf-8 -*-
+#
+"""
+Handles the response of ISGRI to isotropically incoming radiation
 """
 
 import glob

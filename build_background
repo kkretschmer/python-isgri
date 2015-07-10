@@ -1,7 +1,11 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 #
-# Select science windows that are well predicted by background tracers and
-# that have only weak sources. Add them up for background cube production.
+#
+"""
+Select science windows that are well predicted by background tracers and
+that have only weak sources. Add them up for background cube production.
+"""
 
 import os
 import numpy as np

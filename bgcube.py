@@ -1,4 +1,9 @@
-"""Accesses INTEGRAL/ISGRI background maps/cubes
+# -*- coding: utf-8 -*-
+#
+"""
+Handling of INTEGRAL/ISGRI background maps/cubes
+
+Reading, creating and transforming of cubes is supported
 """
 
 import io
@@ -44,6 +49,8 @@ class BGCube(object):
             (32, 33, 66, 67, 100, 101), 0) * norm
 
 class BackgroundBuilder(object):
+    """Build an ISGRI background cube from observations <scwids>"""
+
     def __init__(self, scwids):
         self.scwids = np.array(scwids, dtype=np.uint64)
         self.eff_min = 0.2
