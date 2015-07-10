@@ -53,15 +53,25 @@ def chi2_allbg(bgs, cs, csig):
             c2[i_met, i_bg] = chi2(x, bs, cs, csig)
     return c2
 
-def chi2_per_rev():
+def chi2_per_rev(predictable=False):
     bgs = backgrounds()
     byscw = '/Integral/data/reduced/ddcache/byscw'
     avail = cube.osacubes_avail()
+    if predictable:
+        predictable_scwlist = \
+            '/data/integral/isgri_background/rate_model_below_1_sigma.dat'
+        scw_pre = np.loadtxt(predictable_scwlist, dtype=np.uint64)[:, 0]
+
     revs = sorted(avail.keys())
     cubes = []
     for i_rev in range(0, len(revs)):
         rev = revs[i_rev]
         ids = sorted(avail[rev])
+        if predictable:
+            ids = np.intersect1d(
+                np.array([i[0:12] for i in ids], dtype=np.uint64), scw_pre)
+            ids = ['{0:012d}.001'.format(i) for i in ids]
+            if len(ids) == 0: continue
         scw = ids[len(ids) // 2]
         cubes.append(os.path.join(byscw, list(avail[rev][scw].values())[0]))
     for path in cubes:
