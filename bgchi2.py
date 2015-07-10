@@ -73,8 +73,18 @@ def chi2_per_rev(predictable=False):
             ids = ['{0:012d}.001'.format(i) for i in ids]
             if len(ids) == 0: continue
         scw = ids[len(ids) // 2]
-        cubes.append(os.path.join(byscw, list(avail[rev][scw].values())[0]))
-    for path in cubes:
-        oc = cube.Cube(path)
+        cubes.append(
+            { 'scw': scw,
+              'path': os.path.join(byscw, list(avail[rev][scw].values())[0]),
+            }
+        )
+    for meta in cubes:
+        oc = cube.Cube(meta['path'])
+        if oc.empty: continue
         cs, csig = oc.rate_shadowgram(e_min, e_max, sigma=True)
+        print(meta['scw'])
         print(chi2_allbg(bgs, cs, csig))
+        with open('/data/integral/bgchi2.chi2_per_rev', 'a') as out:
+            print(meta['scw'], file=out, end=" ")
+            chi2_allbg(bgs, cs, csig).flatten().tofile(out, sep=" ")
+            print(file=out)
