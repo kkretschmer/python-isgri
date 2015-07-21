@@ -242,6 +242,19 @@ class Cube(object):
         else:
             return rate
 
+    def cts_exp_shadowgram(self, e_min=0, e_max=np.inf, sigma=None):
+        """Shadowgrams of counts and efficiency, optionally for a subset
+        of the energy range
+        units: cts, s
+        """
+        e_idx = np.logical_and(self.e_min >= e_min, self.e_max <= e_max)
+        cts = self.counts[e_idx].sum(0)
+        eff = (self.efficiency[e_idx] * \
+               np.reshape(self.bin_width[e_idx],
+                          (np.count_nonzero(e_idx), 1, 1))).sum(0) / \
+                          self.bin_width[e_idx].sum()
+        return cts, self.duration * eff
+
     def corr_shad(self):
         rate = np.array(self.counts, dtype='float64')
         rate /= self.duration * 0.4**2
