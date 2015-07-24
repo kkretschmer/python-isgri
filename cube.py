@@ -338,7 +338,7 @@ def osacubes(scwids):
     ids = ids_wanted[idx]
     return [cubes[i] for i in idx], ids
 
-def modules(input_cube):
+def cube2mod(input_cube):
     """split a shadow-gram into its constituent modules,
     rotating modules 4-7 by 180° to match 0-3"""
     mod_order = np.array([7, 6, 5, 4, 0, 1, 2, 3])
@@ -349,3 +349,10 @@ def modules(input_cube):
     modules = np.split(half_stack, 8, 2)
     mod_stack = np.concatenate(modules, axis=1)
     return mod_stack[:, mod_order]
+
+def mod2pc(modules):
+    """split a module stack into its constituent polycells"""
+    pc_z = np.expand_dims(modules, 2)
+    pc_z = np.concatenate(np.split(pc_z, 8, 3), 2)
+    pc_y = np.expand_dims(pc_z, 3)
+    return np.concatenate(np.split(pc_y, 16, 5), 3)
