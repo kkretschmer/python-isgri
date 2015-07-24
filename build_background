@@ -47,12 +47,14 @@ print(bgcube.cube.throng_dir)
 print(bgcube.cube.byscw_dir)
 
 srcsig_pre = np.loadtxt('srcsig-predictable.log', usecols=(0,1))
-sig_max = 20.0
+sig_max = 25.0
 
 idx_lowsrc = srcsig_pre[:, 1] <= sig_max
 scw_lowsrc = srcsig_pre[idx_lowsrc, 0]
 
 bgb = bgcube.BackgroundBuilder(scw_lowsrc)
+bgb.setref(bgcube.BGCube('/Integral/data/ic/ibis/bkg/isgr_back_bkg_0010.fits'))
+bgb.sigma_max = 3.5
 bgcube = bgb.read_cubes()
 
 hdu_pri = fits.PrimaryHDU()
