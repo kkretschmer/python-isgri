@@ -27,12 +27,14 @@ import logging
 import os
 import sqlite3
 import numpy as np
+from scipy.stats import norm
 try:
     from astropy.io import fits
 except ImportError:
     import pyfits as fits
 
 from . import cube
+from . import shadowgram
 
 class BGCube(object):
     """Handles ISGRI background maps
@@ -72,6 +74,14 @@ class BackgroundBuilder(object):
         self.eff_min = 0.2
         self.sig_e_range = (60, 80)
         self.sig_thresholds = (-2.5, 2.5)
+        self.erange_dark = (35, 900)
+        self.erange_hot = (35, 51.5)
+        self.sigma_max = 4
+
+    def setref(self, bgcube):
+        self.ref = bgcube
+        self.ref_dark = self.ref.rate_shadowgram(*self.erange_dark)
+        self.ref_hot = self.ref.rate_shadowgram(*self.erange_hot)
 
     def ps_efficiency_threshold(self, cube):
         return cube.efficiency >= self.eff_min
@@ -108,6 +118,35 @@ class BackgroundBuilder(object):
             blob.close()
         return ps
 
+    def ps_not_dark_hot(self, cube, write_fits=False):
+        name = 'ps_not_dark_hot'
+        ps = np.ones_like(cube.counts, dtype=np.bool)
+        cts, exp = cube.cts_exp_shadowgram(*self.erange_dark)
+        lp_dd, lp_hd = shadowgram.logprob_not_dark_hot(cts, exp, self.ref_dark)
+        cts, exp = cube.cts_exp_shadowgram(*self.erange_hot)
+        lp_dh, lp_hh = shadowgram.logprob_not_dark_hot(cts, exp, self.ref_hot)
+        dark, hot = \
+            [np.logical_and(lp < norm.logsf(self.sigma_max),
+                            np.logical_not(cts.mask))
+             for lp in (lp_dd, lp_hh)]
+        ps[:, np.logical_or(dark, hot)] = False
+        if write_fits:
+            cursor = write_fits
+            cursor.execute('''CREATE TABLE IF NOT EXISTS {0}
+                (scwid TEXT PRIMARY KEY, fits BLOB)'''.format(name))
+            pixels = np.zeros(cts.shape, dtype=np.ubyte)
+            pixels[cts.mask == True] += 1
+            pixels[dark] += 2
+            pixels[hot] += 4
+            hdu = fits.PrimaryHDU(pixels)
+            blob = io.BytesIO()
+            hdu.writeto(blob)
+            cursor.execute('''INSERT OR REPLACE INTO {0}
+                 (scwid, fits) VALUES (?, ?)'''.format(name),
+                           (cube.scwid, blob.getvalue()))
+            blob.close()
+        return ps
+
     def read_cubes(self):
         osacubes, ids = cube.osacubes(self.scwids)
         bgcube = cube.Cube(osacube=True)
@@ -118,7 +157,7 @@ class BackgroundBuilder(object):
 
         selectors = [
             {'fn': self.ps_pixel_efficiency, 'args': (), 'kwargs': {}},
-            {'fn': self.ps_not_outlier, 'args': (),
+            {'fn': self.ps_not_dark_hot, 'args': (),
              'kwargs': {'write_fits': cursor}}
         ]
         logger = logging.getLogger('read_cubes')
