@@ -341,6 +341,8 @@ def osacubes(scwids):
 def cube2mod(input_cube):
     """split a shadow-gram into its constituent modules,
     rotating modules 4-7 by 180° to match 0-3"""
+    if not input_cube.shape[1:] == (128, 128):
+        raise IndexError("Shape not as expected. Is this a cube?")
     mod_order = np.array([7, 6, 5, 4, 0, 1, 2, 3])
     cube = np.expand_dims(input_cube, 1)
     halves = np.split(cube, 2, 3)
@@ -352,6 +354,8 @@ def cube2mod(input_cube):
 
 def mod2pc(modules):
     """split a module stack into its constituent polycells"""
+    if not modules.shape[1:] == (8, 32, 64):
+        raise IndexError("Shape not as expected. Is this a module stack?")
     pc_z = np.expand_dims(modules, 2)
     pc_z = np.concatenate(np.split(pc_z, 8, 3), 2)
     pc_y = np.expand_dims(pc_z, 3)
@@ -359,6 +363,8 @@ def mod2pc(modules):
 
 def pc2mod(pc):
     """concatenate a polycell stack into modules"""
+    if not pc.shape[1:] == (8, 8, 16, 4, 4):
+        raise IndexError("Shape not as expected. Is this a polycell stack?")
     pc_y = np.concatenate(np.split(pc, 8, 2), 4)
     mod = np.concatenate(np.split(pc_y, 16, 3), 5)
     print(mod.shape)
@@ -366,6 +372,8 @@ def pc2mod(pc):
 
 def mod2cube(mod_stack):
     """concatenate a module stack into a cube"""
+    if not mod_stack.shape[1:] == (8, 32, 64):
+        raise IndexError("Shape not as expected. Is this a module stack?")
     mod_order = np.array([4, 5, 6, 7, 3, 2, 1, 0])
     half_stack = np.concatenate(np.split(mod_stack[:, mod_order], 8, 1), 2)
     halves = np.split(half_stack, 2, 2)
