@@ -338,13 +338,13 @@ def osacubes(scwids):
     ids = ids_wanted[idx]
     return [cubes[i] for i in idx], ids
 
-def cube2mod(input_cube):
+def cube2mod(cube_in):
     """split a shadow-gram into its constituent modules,
     rotating modules 4-7 by 180° to match 0-3"""
-    if not input_cube.shape[1:] == (128, 128):
+    if not cube_in.shape[1:] == (128, 128):
         raise IndexError("Shape not as expected. Is this a cube?")
     mod_order = np.array([7, 6, 5, 4, 0, 1, 2, 3])
-    cube = np.expand_dims(input_cube, 1)
+    cube = np.expand_dims(cube_in, 1)
     halves = np.split(cube, 2, 3)
     halves[0] = halves[0][:, :, ::-1, ::-1]
     half_stack = np.concatenate(halves, axis=2)
