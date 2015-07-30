@@ -379,3 +379,19 @@ def mod2cube(mod_stack):
     halves = np.split(half_stack, 2, 2)
     halves[0] = halves[0][:, :, ::-1, ::-1]
     return np.squeeze(np.concatenate(halves, 3), 1)
+
+def cube2mod_ma(cube_in):
+    return np.ma.MaskedArray(cube2mod(cube_in.data),
+                             cube2mod(cube_in.mask))
+
+def mod2pc_ma(modules):
+    return np.ma.MaskedArray(mod2pc(modules.data),
+                             mod2pc(modules.mask))
+
+def pc2mod_ma(pc):
+    return np.ma.MaskedArray(pc2mod(pc.data),
+                             pc2mod(pc.mask))
+
+def mod2cube_ma(mod):
+    return np.ma.MaskedArray(mod2cube(mod.data),
+                             mod2cube(mod.mask))
