@@ -147,6 +147,19 @@ class BackgroundBuilder(object):
             blob.close()
         return ps
 
+    def fill_from_module(self, cube_in, n_modules=5):
+        """Fill in bad pixels by using the average of the good pixels
+        in the same position in module coordinates if more than
+        ``num_modules`` of them are available."""
+        mod = cube.cube2mod(cube_in)
+        mod_mean = mod.mean(1)
+        mod_mean.mask[mod.count(1) < n_modules] = True
+        cube_mean = cube.mod2cube(
+            np.repeat(mod_mean[:, np.newaxis, ...], 8, axis=1))
+        cube_out = type(cube_in).copy(cube_in)
+        cube_out[cube_out.mask] = cube_mean[cube_out.mask]
+        return cube_out
+
     def read_cubes(self):
         osacubes, ids = cube.osacubes(self.scwids)
         bgcube = cube.Cube(osacube=True)
