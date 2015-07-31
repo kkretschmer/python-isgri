@@ -391,7 +391,8 @@ def mod2cube(mod_stack):
     if not mod_stack.shape[1:] == (8, 32, 64):
         raise IndexError("Shape not as expected. Is this a module stack?")
     mod_order = np.array([4, 5, 6, 7, 3, 2, 1, 0])
-    half_stack = np.concatenate(np.split(mod_stack[:, mod_order], 8, 1), 2)
+    half_stack = np.concatenate(
+        np.split(np.copy(mod_stack)[:, mod_order], 8, 1), 2)
     halves = np.split(half_stack, 2, 2)
     halves[0] = halves[0][:, :, ::-1, ::-1]
     return np.squeeze(np.concatenate(halves, 3), 1)
