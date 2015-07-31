@@ -48,7 +48,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'ISGRI with Python'
-copyright = u'2015, Karsten Kretschmer'
+copyright = u'2015, Karsten Kretschmer. This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

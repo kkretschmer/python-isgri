@@ -28,3 +28,17 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
+----
+
+The documentation for `ISGRI with Python`_ is licensed under a
+`Creative Commons Attribution-ShareAlike 4.0 International
+License`_. |cc-icon-small|
+
+.. |cc-icon-small|
+   image:: images/cc-by-sa-small.png
+   :alt: Creative Commons License
+   :target: `Creative Commons Attribution-ShareAlike 4.0 International License`_
+.. _ISGRI with Python:
+   https://github.com/kkretschmer/python-isgri
+.. _Creative Commons Attribution-ShareAlike 4.0 International License:
+   http://creativecommons.org/licenses/by-sa/4.0/
