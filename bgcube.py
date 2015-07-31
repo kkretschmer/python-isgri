@@ -83,17 +83,17 @@ class BackgroundBuilder(object):
         self.ref_dark = self.ref.rate_shadowgram(*self.erange_dark)
         self.ref_hot = self.ref.rate_shadowgram(*self.erange_hot)
 
-    def ps_efficiency_threshold(self, cube):
-        return cube.efficiency >= self.eff_min
+    def ps_efficiency_threshold(self, cube_in):
+        return cube_in.efficiency >= self.eff_min
 
-    def ps_pixel_efficiency(self, cube):
-        ps = np.ones_like(cube.counts, dtype=np.bool)
-        ps[:, cube.efficiency[-1] < self.eff_min] = False
+    def ps_pixel_efficiency(self, cube_in):
+        ps = np.ones_like(cube_in.counts, dtype=np.bool)
+        ps[:, cube_in.efficiency[-1] < self.eff_min] = False
         return ps
 
-    def ps_not_outlier(self, cube, write_fits=False):
-        ps = np.ones_like(cube.counts, dtype=np.bool)
-        sg, sg_sig = cube.rate_shadowgram(self.sig_e_range[0],
+    def ps_not_outlier(self, cube_in, write_fits=False):
+        ps = np.ones_like(cube_in.counts, dtype=np.bool)
+        sg, sg_sig = cube_in.rate_shadowgram(self.sig_e_range[0],
                                           self.sig_e_range[-1], True)
         mi, di = sg.mean(), sg.std()
         dark, hot = \
@@ -114,16 +114,16 @@ class BackgroundBuilder(object):
             blob = io.BytesIO()
             hdu.writeto(blob)
             cursor.execute('''INSERT OR REPLACE INTO ps_not_outlier
-                (scwid, fits) VALUES (?, ?)''', (cube.scwid, blob.getvalue()))
+                (scwid, fits) VALUES (?, ?)''', (cube_in.scwid, blob.getvalue()))
             blob.close()
         return ps
 
-    def ps_not_dark_hot(self, cube, write_fits=False):
+    def ps_not_dark_hot(self, cube_in, write_fits=False):
         name = 'ps_not_dark_hot'
-        ps = np.ones_like(cube.counts, dtype=np.bool)
-        cts, exp = cube.cts_exp_shadowgram(*self.erange_dark)
+        ps = np.ones_like(cube_in.counts, dtype=np.bool)
+        cts, exp = cube_in.cts_exp_shadowgram(*self.erange_dark)
         lp_dd, lp_hd = shadowgram.logprob_not_dark_hot(cts, exp, self.ref_dark)
-        cts, exp = cube.cts_exp_shadowgram(*self.erange_hot)
+        cts, exp = cube_in.cts_exp_shadowgram(*self.erange_hot)
         lp_dh, lp_hh = shadowgram.logprob_not_dark_hot(cts, exp, self.ref_hot)
         dark, hot = \
             [np.logical_and(lp < norm.logsf(self.sigma_max),
@@ -143,7 +143,7 @@ class BackgroundBuilder(object):
             hdu.writeto(blob)
             cursor.execute('''INSERT OR REPLACE INTO {0}
                  (scwid, fits) VALUES (?, ?)'''.format(name),
-                           (cube.scwid, blob.getvalue()))
+                           (cube_in.scwid, blob.getvalue()))
             blob.close()
         return ps
 
