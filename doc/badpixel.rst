@@ -10,6 +10,13 @@ events. The standard data processing performs further
 filtering. Still, the resulting data sets contain some pixels that
 behave in an anomalous way that can be identified.
 
+Once identified these outlier pixels can either be excluded from the
+analysis or their count rate can be estimated from other, related
+pixels.
+
+Identifying anomalous pixels
+----------------------------
+
 The method to identify outlier pixels as implemented in :ref:`bgcube`
 looks at the statistical distribution of pixel counts compared to a
 reference count rate image. when applied to empty field observations,
@@ -36,6 +43,6 @@ this identifies anomalously *dark* and *hot* pixels.
    be expected. Pixels lying significantly below are outliers.
 
    The dotted lines show the raw distribution functions while the
-   solid lines are normalised to the 64:sup:`th` pixel to eliminate
+   solid lines are normalised to the 64\ :sup:`th` pixel to eliminate
    the probability decrease introduced by a systematic mismatch of the
    background intensity distribution.
