@@ -341,6 +341,10 @@ def osacubes(scwids):
 def cube2mod(cube_in):
     """split a shadow-gram into its constituent modules,
     rotating modules 4-7 by 180° to match 0-3"""
+    try:
+        return type(cube_in)(cube2mod(cube_in.data), cube2mod(cube_in.mask))
+    except AttributeError:
+        pass
     if not cube_in.shape[1:] == (128, 128):
         raise IndexError("Shape not as expected. Is this a cube?")
     mod_order = np.array([7, 6, 5, 4, 0, 1, 2, 3])
@@ -354,6 +358,10 @@ def cube2mod(cube_in):
 
 def mod2pc(modules):
     """split a module stack into its constituent polycells"""
+    try:
+        return type(modules)(mod2pc(modules.data), mod2pc(modules.mask))
+    except AttributeError:
+        pass
     if not modules.shape[1:] == (8, 32, 64):
         raise IndexError("Shape not as expected. Is this a module stack?")
     pc_z = np.expand_dims(modules, 2)
@@ -363,6 +371,10 @@ def mod2pc(modules):
 
 def pc2mod(pc):
     """concatenate a polycell stack into modules"""
+    try:
+        return type(pc)(pc2mod(pc.data), pc2mod(pc.mask))
+    except AttributeError:
+        pass
     if not pc.shape[1:] == (8, 8, 16, 4, 4):
         raise IndexError("Shape not as expected. Is this a polycell stack?")
     pc_y = np.concatenate(np.split(pc, 8, 2), 4)
@@ -372,6 +384,10 @@ def pc2mod(pc):
 
 def mod2cube(mod_stack):
     """concatenate a module stack into a cube"""
+    try:
+        return type(mod_stack)(mod2cube(mod.data), mod2cube(mod.mask))
+    except AttributeError:
+        pass
     if not mod_stack.shape[1:] == (8, 32, 64):
         raise IndexError("Shape not as expected. Is this a module stack?")
     mod_order = np.array([4, 5, 6, 7, 3, 2, 1, 0])
@@ -379,19 +395,3 @@ def mod2cube(mod_stack):
     halves = np.split(half_stack, 2, 2)
     halves[0] = halves[0][:, :, ::-1, ::-1]
     return np.squeeze(np.concatenate(halves, 3), 1)
-
-def cube2mod_ma(cube_in):
-    return np.ma.MaskedArray(cube2mod(cube_in.data),
-                             cube2mod(cube_in.mask))
-
-def mod2pc_ma(modules):
-    return np.ma.MaskedArray(mod2pc(modules.data),
-                             mod2pc(modules.mask))
-
-def pc2mod_ma(pc):
-    return np.ma.MaskedArray(pc2mod(pc.data),
-                             pc2mod(pc.mask))
-
-def mod2cube_ma(mod):
-    return np.ma.MaskedArray(mod2cube(mod.data),
-                             mod2cube(mod.mask))
