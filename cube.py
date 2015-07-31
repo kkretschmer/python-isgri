@@ -379,13 +379,13 @@ def pc2mod(pc):
         raise IndexError("Shape not as expected. Is this a polycell stack?")
     pc_y = np.concatenate(np.split(pc, 8, 2), 4)
     mod = np.concatenate(np.split(pc_y, 16, 3), 5)
-    print(mod.shape)
     return np.squeeze(np.squeeze(mod, 3), 2)
 
 def mod2cube(mod_stack):
     """concatenate a module stack into a cube"""
     try:
-        return type(mod_stack)(mod2cube(mod.data), mod2cube(mod.mask))
+        return type(mod_stack)(mod2cube(mod_stack.data),
+                               mod2cube(mod_stack.mask))
     except AttributeError:
         pass
     if not mod_stack.shape[1:] == (8, 32, 64):
