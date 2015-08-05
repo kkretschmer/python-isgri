@@ -151,13 +151,23 @@ class BackgroundBuilder(object):
         """Fill in bad pixels by using the average of the good pixels
         in the same position in module coordinates if more than
         ``num_modules`` of them are available."""
-        mod = cube.cube2mod(cube_in)
-        mod_mean = mod.mean(1)
-        mod_mean.mask[mod.count(1) < n_modules] = True
-        cube_mean = cube.mod2cube(
-            np.repeat(mod_mean[:, np.newaxis, ...], 8, axis=1))
-        cube_out = type(cube_in).copy(cube_in)
-        cube_out[cube_out.mask] = cube_mean[cube_out.mask]
+
+        def cube_mean_mod(cube_in):
+            mod = cube.cube2mod(cube_in)
+            mod_mean = mod.mean(1)
+            mod_mean.mask[mod.count(1) < n_modules] = True
+            return cube.mod2cube(np.repeat(
+                mod_mean[:, np.newaxis, ...], 8, axis=1))
+
+        cube_out = cube.Cube(osacube=True)
+        for key in cube_in.__dict__:
+            setattr(cube_out, key, getattr(cube_in, key))
+        cube_out.counts = np.ma.array(cube_in.counts, dtype=np.float32)
+        cube_out.efficiency = np.ma.copy(cube_in.efficiency)
+        for attr in ['counts', 'efficiency']:
+            src, dst = [getattr(i, attr) for i in [cube_in, cube_out]]
+            flt = cube_mean_mod(src)
+            dst[dst.mask] = flt[dst.mask]
         return cube_out
 
     def read_cubes(self):
