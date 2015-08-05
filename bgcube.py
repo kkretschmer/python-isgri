@@ -147,7 +147,9 @@ class BackgroundBuilder(object):
             blob.close()
         return ps
 
-    def fill_from_module(self, cube_in, n_modules=5):
+    def fill_bad_pixels(self, cube_in,
+                        module=True, polycell=True,
+                        n_modules=5, n_polycells=512):
         """Fill in bad pixels by using the average of the good pixels
         in the same position in module coordinates if more than
         ``num_modules`` of them are available."""
@@ -159,15 +161,30 @@ class BackgroundBuilder(object):
             return cube.mod2cube(np.repeat(
                 mod_mean[:, np.newaxis, ...], 8, axis=1))
 
+        def cube_mean_pc(cube_in):
+            pc = cube.mod2pc(cube.cube2mod(cube_in))
+            pc = pc.reshape((pc.shape[0], 8 * 8 * 16, 4, 4))
+            pc_mean = pc.mean(1)
+            pc_mean.mask[pc.count(1) < n_polycells] = True
+            pc_mean = pc_mean[:, np.newaxis, ...]
+            pc_filled = np.repeat(pc_mean, 8 * 8 * 16, axis=1)
+            pc_filled = pc_filled.reshape((pc.shape[0], 8, 8, 16, 4, 4))
+            return cube.mod2cube(cube.pc2mod(pc_filled))
+
+        runs = []
+        if module: runs += [cube_mean_mod]
+        if polycell: runs += [cube_mean_pc]
+
         cube_out = cube.Cube(osacube=True)
         for key in cube_in.__dict__:
             setattr(cube_out, key, getattr(cube_in, key))
         cube_out.counts = np.ma.array(cube_in.counts, dtype=np.float32)
         cube_out.efficiency = np.ma.copy(cube_in.efficiency)
-        for attr in ['counts', 'efficiency']:
-            src, dst = [getattr(i, attr) for i in [cube_in, cube_out]]
-            flt = cube_mean_mod(src)
-            dst[dst.mask] = flt[dst.mask]
+        for run in runs:
+            for attr in ['counts', 'efficiency']:
+                src, dst = [getattr(i, attr) for i in [cube_in, cube_out]]
+                flt = run(src)
+                dst[dst.mask] = flt[dst.mask]
         return cube_out
 
     def read_cubes(self):
