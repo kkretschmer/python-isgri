@@ -187,10 +187,16 @@ class BackgroundBuilder(object):
                 dst[dst.mask] = flt[dst.mask]
         return cube_out
 
-    def read_cubes(self):
+    def read_cubes(self, n_max=None):
+
+        def bgcube_new():
+            bgcube = cube.Cube(osacube=True)
+            bgcube.counts = np.ma.asarray(bgcube.counts, np.float32)
+            for attr in ['n_scw', 'tmean', 'tstart', 'tstop']:
+                setattr(bgcube, attr, 0)
+            return bgcube
+
         osacubes, ids = cube.osacubes(self.scwids)
-        bgcube = cube.Cube(osacube=True)
-        bgcube.counts = np.ma.asarray(bgcube.counts, np.uint32)
 
         conn = sqlite3.connect('bgcube.sqlite')
         cursor = conn.cursor()
@@ -208,6 +214,11 @@ class BackgroundBuilder(object):
         ch.setLevel(logging.INFO)
         logger.addHandler(fh)
         logger.addHandler(ch)
+
+        tmean = 0
+        bgcubes = []
+        bgcube = bgcube_new()
+
         for path in osacubes:
             try:
                 oc = cube.Cube(path)
@@ -227,9 +238,28 @@ class BackgroundBuilder(object):
                 logger.error('{0}: failed'.format(oc.scwid))
                 continue
 
-            bgcube.counts[idx] += oc.counts[idx]
-            bgcube.efficiency[idx] += oc.efficiency[idx] * oc.duration
+            oc.counts.mask = np.logical_not(idx)
+            oc.efficiency.mask = oc.counts.mask
+            fc = self.fill_bad_pixels(oc)
+
+            bgcube.counts += fc.counts
+            bgcube.efficiency += fc.efficiency * oc.duration
             bgcube.duration += oc.duration
             bgcube.ontime += oc.ontime
+            if bgcube.tstart == 0: bgcube.tstart = oc.tstart
+            bgcube.tstop = oc.tstop
+            tmean += 0.5 * (oc.tstart + oc.tstop) * oc.duration
 
-        return bgcube
+            bgcube.n_scw += 1
+            if n_max:
+                if bgcube.n_scw >= n_max:
+                    # save the current background cube and start a new one
+                    #
+                    bgcube.tmean = tmean / bgcube.duration
+                    logger.info('starting new bgcube')
+                    bgcubes += [bgcube]
+                    bgcube = bgcube_new()
+                    tmean = 0
+
+        bgcubes += [bgcube]
+        return bgcubes
