@@ -57,17 +57,16 @@ bgb.setref(bgcube.BGCube('/Integral/data/ic/ibis/bkg/isgr_back_bkg_0010.fits'))
 bgb.sigma_max = 3.5
 bgcubes = bgb.read_cubes(n_max=400)
 
-for i in range(len(bgcubes)):
-    bgcube = bgcubes[i]
+for i, bc in enumerate(bgcubes):
     hdu_pri = fits.PrimaryHDU()
-    hdu_cts = fits.ImageHDU(np.ma.filled(bgcube.counts, 0))
+    hdu_cts = fits.ImageHDU(np.ma.filled(bc.counts, 0))
     hdu_cts.header['EXTNAME'] = 'COUNTS'
-    hdu_eff = fits.ImageHDU(np.ma.filled(bgcube.efficiency, -1))
+    hdu_eff = fits.ImageHDU(np.ma.filled(bc.efficiency, -1))
     hdu_eff.header['EXTNAME'] = 'EXPOSURE'
     for hdu in [hdu_cts, hdu_eff]:
         for keyword in ['duration', 'n_scw', 'ontime',
                         'tmean', 'tstart', 'tstop']:
-            hdu.header[keyword] = getattr(bgcube, keyword)
+            hdu.header[keyword] = getattr(bc, keyword)
     fitsfile = 'bgcube{0:04d}.fits'.format(i)
     hdulist = fits.HDUList([hdu_pri, hdu_cts, hdu_eff])
     hdulist.writeto(fitsfile, clobber=True)
