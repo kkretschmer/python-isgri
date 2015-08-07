@@ -44,14 +44,40 @@ class BGCube(object):
         (102, 66), (68, 66), (34, 66), (0, 66),
         (102, 0), (68, 0), (34, 0), (0, 0))
 
-    def __init__(self, path):
-        bm_fits = fits.open(path)
-        grp = bm_fits['GROUPING']
-        self.e_min = grp.data['E_MIN']
-        self.e_max = grp.data['E_MAX']
-        self.data = np.dstack(
-            [bm_fits[pos - 1].data for pos in grp.data['MEMBER_POSITION']])
-        bm_fits.close()
+    def __init__(self, src=None):
+        if src is None:
+            # create an empty cube
+            #
+            cube.Cube.default_bins(self)
+            self.data = np.zeros((len(self.e_min), 134, 130),
+                                 dtype=np.float32)
+        elif hasattr(src, 'counts') and hasattr(src, 'efficiency'):
+            # cube-like source (N, 128, 128) where efficiency is
+            # actually exposure
+            #
+            for attr in src.__dict__:
+                if attr == 'counts' or attr == 'efficiency': continue
+                setattr(self, attr, getattr(src, attr))
+            rate = np.zeros_like(src.counts, dtype=np.float32)
+            bin_width = src.e_max - src.e_min
+            idx = np.logical_and(src.counts > 0,
+                                 src.efficiency > 0)
+            rate[idx] = src.counts[idx] / \
+                        (src.efficiency * \
+                         bin_width[:, np.newaxis, np.newaxis])[idx]
+            rate = np.insert(rate, [32, 32, 64, 64, 96, 96], 0, axis=1)
+            rate = np.insert(rate, [64, 64], 0, axis=2)
+            self.data = rate
+        else:
+            # read the OSA background from a FITS file
+            #
+            bm_fits = fits.open(src)
+            grp = bm_fits['GROUPING']
+            self.e_min = grp.data['E_MIN']
+            self.e_max = grp.data['E_MAX']
+            self.data = np.dstack(
+                [bm_fits[pos - 1].data for pos in grp.data['MEMBER_POSITION']])
+            bm_fits.close()
 
     def rate_shadowgram(self, e_min=0, e_max=np.inf):
         """Shadowgram of count rate, optionally for a subset of the energy range
