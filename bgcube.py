@@ -87,12 +87,12 @@ class BackgroundBuilder(object):
         return cube_in.efficiency >= self.eff_min
 
     def ps_pixel_efficiency(self, cube_in):
-        ps = np.ones_like(cube_in.counts, dtype=np.bool)
+        ps = np.ones_like(cube_in.counts.data, dtype=np.bool)
         ps[:, cube_in.efficiency[-1] < self.eff_min] = False
         return ps
 
     def ps_not_outlier(self, cube_in, write_fits=False):
-        ps = np.ones_like(cube_in.counts, dtype=np.bool)
+        ps = np.ones_like(cube_in.counts.data, dtype=np.bool)
         sg, sg_sig = cube_in.rate_shadowgram(self.sig_e_range[0],
                                           self.sig_e_range[-1], True)
         mi, di = sg.mean(), sg.std()
@@ -120,7 +120,7 @@ class BackgroundBuilder(object):
 
     def ps_not_dark_hot(self, cube_in, write_fits=False):
         name = 'ps_not_dark_hot'
-        ps = np.ones_like(cube_in.counts, dtype=np.bool)
+        ps = np.ones_like(cube_in.counts.data, dtype=np.bool)
         cts, exp = cube_in.cts_exp_shadowgram(*self.erange_dark)
         lp_dd, lp_hd = shadowgram.logprob_not_dark_hot(cts, exp, self.ref_dark)
         cts, exp = cube_in.cts_exp_shadowgram(*self.erange_hot)
@@ -219,10 +219,8 @@ class BackgroundBuilder(object):
                 logger.debug('{0}: {1} bin*px valid'.format(
                     oc.scwid, np.count_nonzero(idx)))
                 for sel in selectors:
-                    idx = np.logical_and(
-                        idx,
-                        sel['fn'](oc, *sel['args'], **sel['kwargs'])
-                    )
+                    newidx = sel['fn'](oc, *sel['args'], **sel['kwargs'])
+                    idx = np.logical_and(idx, newidx)
                     logger.debug('{0}: {1}, {2} bin*px valid'.format(
                         oc.scwid, repr(sel['fn']), np.count_nonzero(idx)))
             except:
