@@ -59,12 +59,9 @@ class BGCube(object):
                 if attr == 'counts' or attr == 'efficiency': continue
                 setattr(self, attr, getattr(src, attr))
             rate = np.zeros_like(src.counts, dtype=np.float32)
-            bin_width = src.e_max - src.e_min
             idx = np.logical_and(src.counts > 0,
                                  src.efficiency > 0)
-            rate[idx] = src.counts[idx] / \
-                        (src.efficiency * \
-                         bin_width[:, np.newaxis, np.newaxis])[idx]
+            rate[idx] = src.counts[idx] / src.efficiency[idx]
             rate = np.insert(rate, [32, 32, 64, 64, 96, 96], 0, axis=1)
             rate = np.insert(rate, [64, 64], 0, axis=2)
             self.data = rate
