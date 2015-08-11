@@ -40,7 +40,10 @@ class BGCube(object):
     """Handles ISGRI background maps
     """
     mdus = range(0, 8)
-    mdu_origins = (
+    mdu_origins_com = (
+        (96, 64), (64, 64), (32, 64), (0, 64),
+        (96, 0), (64, 0), (32, 0), (0, 0))
+    mdu_origins_exp = (
         (102, 66), (68, 66), (34, 66), (0, 66),
         (102, 0), (68, 0), (34, 0), (0, 0))
 
