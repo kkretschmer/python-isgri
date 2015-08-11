@@ -75,8 +75,9 @@ class BGCube(object):
             grp = bm_fits['GROUPING']
             self.e_min = grp.data['E_MIN']
             self.e_max = grp.data['E_MAX']
-            self.data = np.dstack(
-                [bm_fits[pos - 1].data for pos in grp.data['MEMBER_POSITION']])
+            self.data = np.vstack(
+                [bm_fits[pos - 1].data[np.newaxis, Ellipsis]
+                 for pos in grp.data['MEMBER_POSITION']])
             bm_fits.close()
 
     def rate_shadowgram(self, e_min=0, e_max=np.inf):
