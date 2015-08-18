@@ -45,6 +45,10 @@ class Cube(object):
     mdu_origins = (
         (96, 64), (64, 64), (32, 64), (0, 64),
         (96, 0), (64, 0), (32, 0), (0, 0))
+    mdu_slices = [
+        (slice(origin[0], origin[0] + 32),
+         slice(origin[1], origin[1] + 64))
+        for origin in mdu_origins]
 
     def default_bins(self):
         bin_width = 0.5 * (1 + np.round(0.054 * np.arange(0, 257)))

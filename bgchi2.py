@@ -22,6 +22,7 @@ import os
 
 import numpy as np
 from scipy.optimize import minimize
+from scipy.stats import poisson
 
 from integral.isgri import bgcube
 from integral.isgri import cube
@@ -37,42 +38,106 @@ def backgrounds():
         'rate_model_below_1_sigma_??/bkg_map*.fits')))
     br, bs = [], []
     return [bgcube.Cube(file).rate_shadowgram(e_min, e_max) for file in files]
+def ra_constant(bs, cts, exp):
+    rate = bs
+    return rate
 
-def chi2(x, bs, cs, csig):
+def ra_proportional(bs, cts, exp):
+    rate = bs * cts.sum() / (bs * exp).sum()
+    return rate
+
+def ra_mdu_proportional(bs, cts, exp):
+    rate = np.ma.zeros(cts.shape)
+    for mdu in cube.Cube.mdu_slices:
+        rate[mdu] = bs[mdu] * cts[mdu].sum() / \
+                    (bs[mdu] * exp[mdu]).sum()
+    return rate
+
+def ra_linear(bs, cts, exp):
+    def rate(x):
+        return x[0] + bs * x[1]
+
+    def func(x):
+        return -qa_logl(rate(x), cts, exp)
+
+    minres = minimize(func, [0, 1], method='Powell')
+    x = minres.x
+    return rate(x)
+
+def qa_chi2(rate, cts, exp):
     """
     chi-squared of a shadowgram relative to a background shadowgram
 
-    x: 2-tuple (offset, scale)
-    bs: background shadowgram
-    cs: cube shadowgram
-    csig: cube shadowgram sigma
+    rate: expected rate shadowgram
+    cts: cube counts shadowgram
+    exp: cube exposure shadowgram
     """
-    return (((x[0] + cs * x[1] - bs) / (csig * x[1]))**2).sum()
+    pixels = ((cts - (rate * exp))**2 / cts).sum()
+    return (pixels.sum(), pixels.count())
 
 def chi2_allbg(bgs, cs, csig):
+def qa_logl(rate, cts, exp):
+    """
+    log-likelihood of a shadowgram relative to a background shadowgram
+
+    rate: expected rate shadowgram
+    cts: cube counts shadowgram
+    exp: cube exposure shadowgram
+    """
+    idx = np.logical_not(np.logical_or(cts.mask, rate.mask))
+    return (poisson.logpmf(cts[idx], rate[idx] * exp[idx]).sum(),
+            np.nount_nonzero(idx))
+
     """
     chi-squared of a shadowgram relative to all backgrounds
     """
-    methods = ('constant', 'proportional', 'linear')
-    n_bg, n_met = len(bgs), len(methods)
-    c2 = np.zeros((n_met, n_bg))
-    for i_met in range(n_met):
-        for i_bg in range(n_bg):
-            method = methods[i_met]
-            bs = bgs[i_bg]
-            if method == 'constant':
-                x = (0, 1)
-            elif method == 'proportional':
-                x = (0, bs.mean() / cs.mean())
-            elif method == 'linear':
-                minres = minimize(chi2, [0, 1], (bs, cs, csig), method='Powell')
-                x = minres.x
-            else:
-                x = (0, 0)
-            c2[i_met, i_bg] = chi2(x, bs, cs, csig)
-    return c2
-
 def chi2_per_rev(predictable=False):
+    rate_algs = [
+        ('constant', ra_constant),
+        ('proportional', ra_proportional),
+        ('mdu-proportional', ra_mdu_proportional),
+        ('linear', ra_linear),
+    ]
+    qual_algs = [
+        ('chi2', qa_chi2),
+        ('logl', qa_logl)
+    ]
+    for bg in bgs:
+        bs = bg['rsg']
+
+        # The algorithms to adjust the model background rate to the
+        # current shadowgram
+        #
+        for rate_alg, rate_fn in rate_algs:
+            rate = rate_fn(bgs, cts, exp)
+            #
+            # The background quality measures
+            #
+            for qual_alg, qual_fn in qual_algs:
+                cursor.execute(
+                    'INSERT OR IGNORE INTO tests'
+                    '  (background, rate, method, e_min, e_max)'
+                    '  VALUES (?, ?, ?, ?, ?)',
+                    (bg['file'], rate_alg, qual_alg, e_min, e_max)
+                )
+                cursor.execute(
+                    'SELECT test_id FROM tests WHERE'
+                    '  background = ? AND'
+                    '  rate = ? AND'
+                    '  method = ? AND'
+                    '  e_min = ? AND'
+                    '  e_max = ?',
+                    (bg['file'], rate_alg, qual_alg, e_min, e_max)
+                )
+                test_id = cursor.fetchone()[0]
+                if test_id:
+                    cursor.execute(
+                        'INSERT INTO quality'
+                        ' (test_id, scwid, npix, value)'
+                        ' VALUES (?, ?, ?, ?)',
+                        (test_id, scwid, cts.count(),
+                         qual_fn(rate, cts, exp)))
+
     bgs = backgrounds()
     byscw = '/Integral/data/reduced/ddcache/byscw'
     avail = cube.osacubes_avail()
@@ -100,7 +165,7 @@ def chi2_per_rev(predictable=False):
     for meta in cubes:
         oc = cube.Cube(meta['path'])
         if oc.empty: continue
-        cs, csig = oc.rate_shadowgram(e_min, e_max, sigma=True)
+        cts, exp = oc.cts_exp_shadowgram(e_min, e_max)
         print(meta['scw'])
         print(chi2_allbg(bgs, cs, csig))
         with open('/data/integral/bgchi2.chi2_per_rev', 'a') as out:
