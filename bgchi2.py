@@ -24,6 +24,10 @@ import sqlite3
 import numpy as np
 from scipy.optimize import minimize
 from scipy.stats import poisson
+try:
+    from astropy.io import fits
+except ImportError:
+    import pyfits as fits
 
 from integral.isgri import bgcube
 from integral.isgri import cube
@@ -47,14 +51,25 @@ cursor.execute(
 )
 
 def backgrounds():
-    bg_path = '/Integral/data/resources/bg_model/' \
-              'rate_model_below_1_sigma/rev_mod_100'
+    bg_path = '/data/integral/bgcube/2015-08-10_multi-200'
     files = sorted(glob.glob( \
         '/Integral/data/ic/ibis/bkg/isgr_back_bkg_????.fits'))
-    files += sorted(glob.glob(os.path.join(bg_path,
-        'rate_model_below_1_sigma_??/bkg_map*.fits')))
-    br, bs = [], []
-    return [bgcube.Cube(file).rate_shadowgram(e_min, e_max) for file in files]
+    result = [{'file': file,
+               'rsg': bgcube.BGCube(file).rate_shadowgram(e_min, e_max)}
+              for file in files]
+    def read_bgcube(path):
+        hdulist = fits.open(path)
+        c = cube.Cube()
+        c.counts, c.efficiency = [hdulist[i].data for i in [1, 2]]
+        c.tmean = hdulist[1].header['tmean']
+        hdulist.close()
+        return bgcube.BGCube(c)
+    files = sorted(glob.glob(os.path.join(bg_path, 'bgcube????.fits')))
+    result += [{'file': file,
+                'rsg': read_bgcube(file).rate_shadowgram(e_min, e_max)}
+              for file in files]
+    return result
+
 def ra_constant(bs, cts, exp):
     rate = bs
     return rate
