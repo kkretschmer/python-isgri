@@ -19,6 +19,7 @@
 
 import glob
 import os
+import sqlite3
 
 import numpy as np
 from scipy.optimize import minimize
@@ -28,6 +29,22 @@ from integral.isgri import bgcube
 from integral.isgri import cube
 
 e_min, e_max = 25, 80
+
+conn = sqlite3.connect('bgchi2.sqlite')
+cursor = conn.cursor()
+cursor.execute(
+    'CREATE TABLE IF NOT EXISTS tests'
+    '  (test_id INTEGER PRIMARY KEY,'
+    '   background TEXT, rate TEXT, method TEXT,'
+    '   e_min NUMERIC, e_max NUMERIC, '
+    '   UNIQUE (background , rate, method, e_min, e_max))'
+)
+cursor.execute(
+    'CREATE TABLE IF NOT EXISTS quality'
+    '  (test_id INTEGER REFERENCES tests (test_id),'
+    '   scwid TEXT, npix INTEGER, value NUMERIC,'
+    '   UNIQUE (test_id, scwid))'
+)
 
 def backgrounds():
     bg_path = '/Integral/data/resources/bg_model/' \
@@ -167,8 +184,4 @@ def chi2_per_rev(predictable=False):
         if oc.empty: continue
         cts, exp = oc.cts_exp_shadowgram(e_min, e_max)
         print(meta['scw'])
-        print(chi2_allbg(bgs, cs, csig))
-        with open('/data/integral/bgchi2.chi2_per_rev', 'a') as out:
-            print(meta['scw'], file=out, end=" ")
-            chi2_allbg(bgs, cs, csig).flatten().tofile(out, sep=" ")
-            print(file=out)
+        scw_tests(bgs, cts, exp, meta['scw'])
