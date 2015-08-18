@@ -107,7 +107,6 @@ def qa_chi2(rate, cts, exp):
     pixels = ((cts - (rate * exp))**2 / cts).sum()
     return (pixels.sum(), pixels.count())
 
-def chi2_allbg(bgs, cs, csig):
 def qa_logl(rate, cts, exp):
     """
     log-likelihood of a shadowgram relative to a background shadowgram
@@ -120,10 +119,13 @@ def qa_logl(rate, cts, exp):
     return (poisson.logpmf(cts[idx], rate[idx] * exp[idx]).sum(),
             np.nount_nonzero(idx))
 
+def scw_tests(bgs, cts, exp, scwid):
     """
     chi-squared of a shadowgram relative to all backgrounds
+
+    For all backgrounds we predict a rate using a set of algorithms,
+    then test the match to the shadowgram using a set of quality measures.
     """
-def chi2_per_rev(predictable=False):
     rate_algs = [
         ('constant', ra_constant),
         ('proportional', ra_proportional),
@@ -170,6 +172,7 @@ def chi2_per_rev(predictable=False):
                         (test_id, scwid, cts.count(),
                          qual_fn(rate, cts, exp)))
 
+def tests_per_rev(predictable=False):
     bgs = backgrounds()
     byscw = '/Integral/data/reduced/ddcache/byscw'
     avail = cube.osacubes_avail()
@@ -194,9 +197,13 @@ def chi2_per_rev(predictable=False):
               'path': os.path.join(byscw, list(avail[rev][scw].values())[0]),
             }
         )
+
     for meta in cubes:
         oc = cube.Cube(meta['path'])
         if oc.empty: continue
         cts, exp = oc.cts_exp_shadowgram(e_min, e_max)
         print(meta['scw'])
         scw_tests(bgs, cts, exp, meta['scw'])
+
+if __name__ == "__main__":
+    tests_per_rev(predictable=True)
