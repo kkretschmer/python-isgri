@@ -55,7 +55,8 @@ def backgrounds():
     files = sorted(glob.glob( \
         '/Integral/data/ic/ibis/bkg/isgr_back_bkg_????.fits'))
     result = [{'file': file,
-               'rsg': bgcube.BGCube(file).rate_shadowgram(e_min, e_max)}
+               'rsg': bgcube.BGCube(file).rate_shadowgram(
+                   e_min, e_max, per_keV=False)}
               for file in files]
     def read_bgcube(path):
         hdulist = fits.open(path)
@@ -66,7 +67,8 @@ def backgrounds():
         return bgcube.BGCube(c)
     files = sorted(glob.glob(os.path.join(bg_path, 'bgcube????.fits')))
     result += [{'file': file,
-                'rsg': read_bgcube(file).rate_shadowgram(e_min, e_max)}
+                'rsg': read_bgcube(file).rate_shadowgram(
+                    e_min, e_max, per_keV=False)}
               for file in files]
     return result
 

@@ -80,14 +80,15 @@ class BGCube(object):
                  for pos in grp.data['MEMBER_POSITION']])
             bm_fits.close()
 
-    def rate_shadowgram(self, e_min=0, e_max=np.inf):
+    def rate_shadowgram(self, e_min=0, e_max=np.inf, per_keV=True):
         """Shadowgram of count rate, optionally for a subset of the energy range
 
-        unit: cts.s-1.keV-1
+        unit: cts.s-1.keV-1 or cts.s-1 depending on the value of per_keV
         """
         e_idx = np.logical_and(self.e_min >= e_min, self.e_max <= e_max)
-        norm = 1 / np.sum(self.e_max[e_idx] - self.e_min[e_idx])
-        exp_img = np.sum(self.data[e_idx, Ellipsis], 0) * norm
+        exp_img = self.data[e_idx, Ellipsis].sum(axis=0)
+        if per_keV:
+            exp_img /= (self.e_max[e_idx] - self.e_min[e_idx]).sum()
         return np.delete(
             np.delete(exp_img, (64, 65), 1),
             (32, 33, 66, 67, 100, 101), 0)
