@@ -18,6 +18,7 @@
 #
 
 import glob
+import itertools
 import os
 import sqlite3
 
@@ -50,6 +51,10 @@ cursor.execute(
     '   scwid TEXT, npix INTEGER, value NUMERIC,'
     '   UNIQUE (test_id, scwid))'
 )
+
+outlier_count = fits.open('/data/integral/pixels/outlier_count.fits')
+outlier = outlier_count[0].data >= 4
+outlier_count.close()
 
 def backgrounds():
     bg_path = '/data/integral/bgcube/2015-08-10_multi-200'
@@ -138,6 +143,11 @@ def sum_asic(sg):
 def sum_polycell(sg):
     return sg.reshape(32, 4, 32, 4).sum(axis=3).sum(axis=1)
 
+def ma_outlier(cts):
+    masked_cts = cts.copy()
+    masked_cts[outlier] = np.ma.masked
+    return masked_cts
+
 def scw_tests(bgs, cts, exp, scwid):
     """
     chi-squared of a shadowgram relative to all backgrounds
@@ -145,6 +155,10 @@ def scw_tests(bgs, cts, exp, scwid):
     For all backgrounds we predict a rate using a set of algorithms,
     then test the match to the shadowgram using a set of quality measures.
     """
+    mask_algs = [
+        ('nomask', lambda cts: cts),
+        ('outlier', ma_outlier),
+    ]
     rate_algs = [
         ('constant', ra_constant),
         ('proportional', ra_proportional),
@@ -167,42 +181,54 @@ def scw_tests(bgs, cts, exp, scwid):
          lambda rate, cts, exp: \
          qa_logl(*[sum_polycell(i) for i in (rate, cts, 0.0625 * exp)])),
     ]
-    for bg in bgs:
-        bs = np.ma.asarray(bg['rsg'])
 
-        # The algorithms to adjust the model background rate to the
-        # current shadowgram
-        #
-        for rate_alg, rate_fn in rate_algs:
-            rate = rate_fn(bs, cts, exp)
-            #
-            # The background quality measures
-            #
-            for qual_alg, qual_fn in qual_algs:
+    # I want to iterate over most combinations of background, pixel mask,
+    # rate adjustment and quality measure. To keep the nesting depth small
+    # a cartesian product is useful and I just accept the overhead of
+    # also testing unnecessary combinations as well.
+    #
+    # The quality algorithm does not need to be in the cartesian product
+    # because they all work on the same rate shadowgram.
+    #
+    for bg, mask_alg, rate_alg in itertools.product(
+            bgs, mask_algs, rate_algs):
+
+        bs = np.ma.asarray(bg['rsg'])
+        mask_name, mask_fn = mask_alg
+        rate_name, rate_fn = rate_alg
+        mask_rate_name = ','.join((mask_name, rate_name))
+
+        cts_masked = mask_fn(cts)
+        rate = rate_fn(bs, cts_masked, exp)
+
+        for qual_alg in qual_algs:
+            qual_name, qual_fn = qual_alg
+            cursor.execute(
+                'INSERT OR IGNORE INTO tests'
+                '  (background, rate, method, e_min, e_max)'
+                '  VALUES (?, ?, ?, ?, ?)',
+                (bg['file'], mask_rate_name, qual_name, e_min, e_max)
+            )
+            cursor.execute(
+                'SELECT test_id FROM tests WHERE'
+                '  background = ? AND'
+                '  rate = ? AND'
+                '  method = ? AND'
+                '  e_min = ? AND'
+                '  e_max = ?',
+                (bg['file'], mask_rate_name, qual_name, e_min, e_max)
+            )
+            test_id = cursor.fetchone()[0]
+            if test_id:
+                quality, npix = qual_fn(rate, cts_masked, exp)
                 cursor.execute(
-                    'INSERT OR IGNORE INTO tests'
-                    '  (background, rate, method, e_min, e_max)'
-                    '  VALUES (?, ?, ?, ?, ?)',
-                    (bg['file'], rate_alg, qual_alg, e_min, e_max)
-                )
-                cursor.execute(
-                    'SELECT test_id FROM tests WHERE'
-                    '  background = ? AND'
-                    '  rate = ? AND'
-                    '  method = ? AND'
-                    '  e_min = ? AND'
-                    '  e_max = ?',
-                    (bg['file'], rate_alg, qual_alg, e_min, e_max)
-                )
-                test_id = cursor.fetchone()[0]
-                if test_id:
-                    quality, npix = qual_fn(rate, cts, exp)
-                    cursor.execute(
-                        'INSERT OR REPLACE INTO quality'
-                        ' (test_id, scwid, npix, value)'
-                        ' VALUES (?, ?, ?, ?)',
-                        (test_id, scwid, int(npix), quality))
-                    conn.commit()
+                    'INSERT OR REPLACE INTO quality'
+                    ' (test_id, scwid, npix, value)'
+                    ' VALUES (?, ?, ?, ?)',
+                    (test_id, scwid, int(npix), quality))
+                conn.commit()
+                print(scwid, bg['file'], mask_rate_name, qual_name, e_min, e_max,
+                      quality, npix)
 
 def tests_per_rev(predictable=False):
     bgs = backgrounds()
