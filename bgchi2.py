@@ -140,13 +140,13 @@ def scw_tests(bgs, cts, exp, scwid):
         ('logl', qa_logl)
     ]
     for bg in bgs:
-        bs = bg['rsg']
+        bs = np.ma.asarray(bg['rsg'])
 
         # The algorithms to adjust the model background rate to the
         # current shadowgram
         #
         for rate_alg, rate_fn in rate_algs:
-            rate = rate_fn(bgs, cts, exp)
+            rate = rate_fn(bs, cts, exp)
             #
             # The background quality measures
             #
