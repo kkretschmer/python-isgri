@@ -85,7 +85,7 @@ def ra_constant(bs, cts, exp):
 def ra_proportional(bs, cts, exp):
     x = cts.sum() / (bs * exp).sum()
     rate = bs * x
-    print(x)
+    print('ra_proportional: ', x)
     return rate
 
 def ra_mdu_proportional(bs, cts, exp):
@@ -105,6 +105,7 @@ def ra_linear(bs, cts, exp):
     x0 = np.array([0.1, 0.9])
     minres = minimize(fun, x0, method='Powell')
     x = minres.x
+    print('ra_linear: ', x)
     return rate(x)
 
 def ra_mdu_linear(bs, cts, exp):
@@ -121,7 +122,7 @@ def qa_chi2(rate, cts, exp):
     cts: cube counts shadowgram
     exp: cube exposure shadowgram
     """
-    pixels = ((cts - (rate * exp))**2 / cts).sum()
+    pixels = (cts - (rate * exp))**2 / cts
     return (pixels.sum(), pixels.count())
 
 def qa_logl(rate, cts, exp):
@@ -132,10 +133,11 @@ def qa_logl(rate, cts, exp):
     cts: cube counts shadowgram
     exp: cube exposure shadowgram
     """
-    return (poisson.logpmf(cts[idx], rate[idx] * exp[idx]).sum(),
-            np.nount_nonzero(idx))
     idx = np.logical_not(
         np.logical_or(np.logical_or(cts.mask, exp.mask), rate.mask))
+    return (poisson.logpmf(
+        cts[idx], rate[idx] * exp[idx]).sum(),
+            np.count_nonzero(idx))
 
 def sum_asic(sg):
     return sg.reshape(64, 2, 64, 2).sum(axis=3).sum(axis=1)
