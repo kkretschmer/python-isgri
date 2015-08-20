@@ -127,9 +127,10 @@ def qa_logl(rate, cts, exp):
     cts: cube counts shadowgram
     exp: cube exposure shadowgram
     """
-    idx = np.logical_not(np.logical_or(cts.mask, rate.mask))
     return (poisson.logpmf(cts[idx], rate[idx] * exp[idx]).sum(),
             np.nount_nonzero(idx))
+    idx = np.logical_not(
+        np.logical_or(np.logical_or(cts.mask, exp.mask), rate.mask))
 
 def sum_asic(sg):
     return sg.reshape(64, 2, 64, 2).sum(axis=3).sum(axis=1)
