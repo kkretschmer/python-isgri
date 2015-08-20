@@ -36,6 +36,7 @@ e_min, e_max = 25, 80
 
 conn = sqlite3.connect('bgchi2.sqlite')
 cursor = conn.cursor()
+cursor.execute('PRAGMA foreign_keys=ON')
 cursor.execute(
     'CREATE TABLE IF NOT EXISTS tests'
     '  (test_id INTEGER PRIMARY KEY,'
@@ -167,12 +168,13 @@ def scw_tests(bgs, cts, exp, scwid):
                 )
                 test_id = cursor.fetchone()[0]
                 if test_id:
+                    quality, npix = qual_fn(rate, cts, exp)
                     cursor.execute(
-                        'INSERT INTO quality'
+                        'INSERT OR REPLACE INTO quality'
                         ' (test_id, scwid, npix, value)'
                         ' VALUES (?, ?, ?, ?)',
-                        (test_id, scwid, cts.count(),
-                         qual_fn(rate, cts, exp)))
+                        (test_id, scwid, int(npix), quality))
+                    conn.commit()
 
 def tests_per_rev(predictable=False):
     bgs = backgrounds()
