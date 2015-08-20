@@ -102,6 +102,12 @@ def ra_linear(bs, cts, exp):
     x = minres.x
     return rate(x)
 
+def ra_mdu_linear(bs, cts, exp):
+    rate = np.ma.zeros(cts.shape)
+    for mdu in cube.Cube.mdu_slices:
+        rate[mdu] = ra_linear(bs[mdu], cts[mdu], exp[mdu])
+    return rate
+
 def qa_chi2(rate, cts, exp):
     """
     chi-squared of a shadowgram relative to a background shadowgram
