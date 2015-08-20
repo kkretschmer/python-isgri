@@ -123,6 +123,12 @@ def qa_logl(rate, cts, exp):
     return (poisson.logpmf(cts[idx], rate[idx] * exp[idx]).sum(),
             np.nount_nonzero(idx))
 
+def sum_asic(sg):
+    return sg.reshape(64, 2, 64, 2).sum(axis=3).sum(axis=1)
+
+def sum_polycell(sg):
+    return sg.reshape(32, 4, 32, 4).sum(axis=3).sum(axis=1)
+
 def scw_tests(bgs, cts, exp, scwid):
     """
     chi-squared of a shadowgram relative to all backgrounds
@@ -138,7 +144,19 @@ def scw_tests(bgs, cts, exp, scwid):
     ]
     qual_algs = [
         ('chi2', qa_chi2),
-        ('logl', qa_logl)
+        ('logl', qa_logl),
+        ('chi2-asic',
+         lambda rate, cts, exp: \
+         qa_chi2(*[sum_asic(i) for i in (rate, cts, 0.25 * exp)])),
+        ('logl-asic',
+         lambda rate, cts, exp: \
+         qa_logl(*[sum_asic(i) for i in (rate, cts, 0.25 * exp)])),
+        ('chi2-polycell',
+         lambda rate, cts, exp: \
+         qa_chi2(*[sum_polycell(i) for i in (rate, cts, 0.0625 * exp)])),
+        ('logl-polycell',
+         lambda rate, cts, exp: \
+         qa_logl(*[sum_polycell(i) for i in (rate, cts, 0.0625 * exp)])),
     ]
     for bg in bgs:
         bs = np.ma.asarray(bg['rsg'])
