@@ -78,14 +78,15 @@ def ra_constant(bs, cts, exp):
     return rate
 
 def ra_proportional(bs, cts, exp):
-    rate = bs * cts.sum() / (bs * exp).sum()
+    x = cts.sum() / (bs * exp).sum()
+    rate = bs * x
+    print(x)
     return rate
 
 def ra_mdu_proportional(bs, cts, exp):
     rate = np.ma.zeros(cts.shape)
     for mdu in cube.Cube.mdu_slices:
-        rate[mdu] = bs[mdu] * cts[mdu].sum() / \
-                    (bs[mdu] * exp[mdu]).sum()
+        rate[mdu] = ra_proportional(bs[mdu], cts[mdu], exp[mdu])
     return rate
 
 def ra_linear(bs, cts, exp):
