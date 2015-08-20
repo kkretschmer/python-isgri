@@ -164,6 +164,7 @@ def scw_tests(bgs, cts, exp, scwid):
         ('proportional', ra_proportional),
         ('mdu-proportional', ra_mdu_proportional),
         ('linear', ra_linear),
+        ('mdu-linear', ra_mdu_linear),
     ]
     qual_algs = [
         ('chi2', qa_chi2),
