@@ -90,13 +90,15 @@ def ra_mdu_proportional(bs, cts, exp):
     return rate
 
 def ra_linear(bs, cts, exp):
+    bs_mean = bs.mean()
     def rate(x):
-        return x[0] + bs * x[1]
+        return (x[0] * bs_mean + x[1] * bs)
 
-    def func(x):
-        return -qa_logl(rate(x), cts, exp)
+    def fun(x):
+        return qa_chi2(rate(x), cts, exp)[0]
 
-    minres = minimize(func, [0, 1], method='Powell')
+    x0 = np.array([0.1, 0.9])
+    minres = minimize(fun, x0, method='Powell')
     x = minres.x
     return rate(x)
 
