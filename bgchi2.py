@@ -23,7 +23,6 @@ import os
 import sqlite3
 
 import numpy as np
-from scipy.optimize import minimize
 try:
     from astropy.io import fits
 except ImportError:
@@ -32,6 +31,7 @@ except ImportError:
 from integral.isgri import bgcube
 from integral.isgri import cube
 from integral.isgri.shadowgram import fitquality
+from integral.isgri.shadowgram import rateadj
 
 e_min, e_max = 25, 80
 
@@ -78,42 +78,6 @@ def backgrounds():
               for file in files]
     return result
 
-def ra_constant(bs, cts, exp):
-    rate = bs
-    return rate
-
-def ra_proportional(bs, cts, exp):
-    x = cts.sum() / (bs * exp).sum()
-    rate = bs * x
-    print('ra_proportional: ', x)
-    return rate
-
-def ra_mdu_proportional(bs, cts, exp):
-    rate = np.ma.zeros(cts.shape)
-    for mdu in cube.Cube.mdu_slices:
-        rate[mdu] = ra_proportional(bs[mdu], cts[mdu], exp[mdu])
-    return rate
-
-def ra_linear(bs, cts, exp):
-    bs_mean = bs.mean()
-    def rate(x):
-        return (x[0] * bs_mean + x[1] * bs)
-
-    def fun(x):
-        return qa_chi2(rate(x), cts, exp)[0]
-
-    x0 = np.array([0.1, 0.9])
-    minres = minimize(fun, x0, method='Powell')
-    x = minres.x
-    print('ra_linear: ', x)
-    return rate(x)
-
-def ra_mdu_linear(bs, cts, exp):
-    rate = np.ma.zeros(cts.shape)
-    for mdu in cube.Cube.mdu_slices:
-        rate[mdu] = ra_linear(bs[mdu], cts[mdu], exp[mdu])
-    return rate
-
 def sum_asic(sg):
     return sg.reshape(64, 2, 64, 2).sum(axis=3).sum(axis=1)
 
@@ -137,11 +101,11 @@ def scw_tests(bgs, cts, exp, scwid):
         ('outlier', ma_outlier),
     ]
     rate_algs = [
-        ('constant', ra_constant),
-        ('proportional', ra_proportional),
-        ('mdu-proportional', ra_mdu_proportional),
-        ('linear', ra_linear),
-        ('mdu-linear', ra_mdu_linear),
+        ('constant', rateadj.constant),
+        ('proportional', rateadj.proportional),
+        ('mdu-proportional', rateadj.mdu_proportional),
+        ('linear', rateadj.linear),
+        ('mdu-linear', rateadj.mdu_linear),
     ]
     qual_algs = [
         ('chi2', fitquality.chi2),
