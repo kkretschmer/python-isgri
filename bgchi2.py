@@ -24,7 +24,6 @@ import sqlite3
 
 import numpy as np
 from scipy.optimize import minimize
-from scipy.stats import poisson
 try:
     from astropy.io import fits
 except ImportError:
@@ -32,6 +31,7 @@ except ImportError:
 
 from integral.isgri import bgcube
 from integral.isgri import cube
+from integral.isgri.shadowgram import fitquality
 
 e_min, e_max = 25, 80
 
@@ -114,31 +114,6 @@ def ra_mdu_linear(bs, cts, exp):
         rate[mdu] = ra_linear(bs[mdu], cts[mdu], exp[mdu])
     return rate
 
-def qa_chi2(rate, cts, exp):
-    """
-    chi-squared of a shadowgram relative to a background shadowgram
-
-    rate: expected rate shadowgram
-    cts: cube counts shadowgram
-    exp: cube exposure shadowgram
-    """
-    pixels = (cts - (rate * exp))**2 / cts
-    return (pixels.sum(), pixels.count())
-
-def qa_logl(rate, cts, exp):
-    """
-    log-likelihood of a shadowgram relative to a background shadowgram
-
-    rate: expected rate shadowgram
-    cts: cube counts shadowgram
-    exp: cube exposure shadowgram
-    """
-    idx = np.logical_not(
-        np.logical_or(np.logical_or(cts.mask, exp.mask), rate.mask))
-    return (poisson.logpmf(
-        cts[idx], rate[idx] * exp[idx]).sum(),
-            np.count_nonzero(idx))
-
 def sum_asic(sg):
     return sg.reshape(64, 2, 64, 2).sum(axis=3).sum(axis=1)
 
@@ -169,20 +144,16 @@ def scw_tests(bgs, cts, exp, scwid):
         ('mdu-linear', ra_mdu_linear),
     ]
     qual_algs = [
-        ('chi2', qa_chi2),
-        ('logl', qa_logl),
-        ('chi2-asic',
-         lambda rate, cts, exp: \
-         qa_chi2(*[sum_asic(i) for i in (rate, cts, 0.25 * exp)])),
-        ('logl-asic',
-         lambda rate, cts, exp: \
-         qa_logl(*[sum_asic(i) for i in (rate, cts, 0.25 * exp)])),
-        ('chi2-polycell',
-         lambda rate, cts, exp: \
-         qa_chi2(*[sum_polycell(i) for i in (rate, cts, 0.0625 * exp)])),
-        ('logl-polycell',
-         lambda rate, cts, exp: \
-         qa_logl(*[sum_polycell(i) for i in (rate, cts, 0.0625 * exp)])),
+        ('chi2', fitquality.chi2),
+        ('logl', fitquality.logl),
+        ('chi2-asic', fitquality.fq_summed(fitquality.chi2,
+                                           fitquality.sum_asic)),
+        ('logl-asic', fitquality.fq_summed(fitquality.logl,
+                                           fitquality.sum_asic)),
+        ('chi2-polycell', fitquality.fq_summed(fitquality.chi2,
+                                               fitquality.sum_polycell)),
+        ('logl-polycell', fitquality.fq_summed(fitquality.logl,
+                                               fitquality.sum_polycell)),
     ]
 
     # I want to iterate over most combinations of background, pixel mask,
