@@ -47,17 +47,26 @@ def logl(rate, cts, exp):
         cts[idx], rate[idx] * exp[idx]).sum(),
             np.count_nonzero(idx))
 
-def sum_asic():
-    return lambda sg: sg.reshape(64, 2, 64, 2).sum(axis=3).sum(axis=1), 0.25
+def sum_asic(sg):
+    """
+    Sum of a shadowgram over the 2x2 pixel groups corresponding to the ASICs
+    """
+    return sg.reshape(64, 2, 64, 2).sum(axis=3).sum(axis=1)
 
-def sum_polycell():
-    return lambda sg: sg.reshape(32, 4, 32, 4).sum(axis=3).sum(axis=1), 0.0625
+def sum_polycell(sg):
+    """
+    Sum of a shadowgram over the 4x4 pixel groups corresponding to the polycells
+    """
+    return sg.reshape(32, 4, 32, 4).sum(axis=3).sum(axis=1)
 
 def fq_summed(fq, grp):
+    """
+    Returns a function that applies the fit quality function ``fq`` to the
+    results of the grouping function ``grp`` of its arguments ``rate``,
+    ``cts`` and ``exp``.
+    """
     def fun_fq_summed(rate, cts, exp):
-        grp_fn, scale = grp()
-        mask = np.logical_or(cts.mask, rate.mask)
-        args = [grp_fn(np.ma.MaskedArray(i, mask))
-                for i in (rate * scale, cts, exp)]
-        return fq(*args)
+        s_rate = grp(rate * exp) / grp(exp)
+        s_cts, s_exp = [grp(sg) for sg in (cts, exp)]
+        return fq(s_rate, s_cts, s_exp)
     return fun_fq_summed
