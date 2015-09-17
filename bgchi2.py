@@ -72,10 +72,24 @@ def backgrounds():
         hdulist.close()
         return bgcube.BGCube(c)
     files = sorted(glob.glob(os.path.join(bg_path, 'bgcube????.fits')))
-    result += [{'file': file,
-                'rsg': read_bgcube(file).rate_shadowgram(
-                    e_min, e_max, per_keV=False)}
-              for file in files]
+
+    bc = [read_bgcube(ff) for ff in files]
+    t = np.array([c.tmean for c in bc])
+    bts = bglincomb.BGTimeSeries(bc)
+    lightcurves = [
+        np.ones_like(t),
+        bts.lightcurve(25, 80),
+        bts.lightcurve(80, 200),
+        bts.lightcurve(600, 900),
+        (t - np.amin(t)) / (np.amax(t) - np.amin(t))
+    ]
+    bts.lincomb(lightcurves, t)
+    result += [{
+        'file': 'bglincomb.BGTimeSeries.bgcube',
+        'rsg': np.ma.ones((128, 128)),
+        'bts': bts
+    }]
+
     return result
 
 def sum_asic(sg):
@@ -89,7 +103,7 @@ def ma_outlier(cts):
     masked_cts[outlier] = np.ma.masked
     return masked_cts
 
-def scw_tests(bgs, cts, exp, scwid):
+def scw_tests(bgs, cts, exp, scwid, tstart=0):
     """
     chi-squared of a shadowgram relative to all backgrounds
 
@@ -132,6 +146,8 @@ def scw_tests(bgs, cts, exp, scwid):
             bgs, mask_algs, rate_algs):
 
         bs = np.ma.asarray(bg['rsg'])
+        if bg['file'] == 'bglincomb.BGTimeSeries.bgcube':
+            bs = np.ma.asarray(bg['bts'].bgcube(tstart))
         mask_name, mask_fn = mask_alg
         rate_name, rate_fn = rate_alg
         mask_rate_name = ','.join((mask_name, rate_name))
@@ -199,7 +215,7 @@ def tests_per_rev(predictable=False):
         if oc.empty: continue
         cts, exp = oc.cts_exp_shadowgram(e_min, e_max)
         print(meta['scw'])
-        scw_tests(bgs, cts, exp, meta['scw'])
+        scw_tests(bgs, cts, exp, meta['scw'], tstart=oc.tstart)
 
 if __name__ == "__main__":
     tests_per_rev(predictable=True)
