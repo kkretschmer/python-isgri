@@ -246,7 +246,7 @@ class Cube(object):
         else:
             return rate
 
-    def cts_exp_shadowgram(self, e_min=0, e_max=np.inf, sigma=None):
+    def cts_exp_shadowgram(self, e_min=0, e_max=np.inf):
         """Shadowgrams of counts and efficiency, optionally for a subset
         of the energy range
         units: cts, s
