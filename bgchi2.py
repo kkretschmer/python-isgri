@@ -17,6 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
+import argparse
 import glob
 import itertools
 import os
@@ -28,10 +29,11 @@ try:
 except ImportError:
     import pyfits as fits
 
-from integral.isgri import bgcube
-from integral.isgri import cube
-from integral.isgri.shadowgram import fitquality
-from integral.isgri.shadowgram import rateadj
+from . import bgcube
+from . import bglincomb
+from . import cube
+from .shadowgram import fitquality
+from .shadowgram import rateadj
 
 e_min, e_max = 25, 80
 
@@ -217,5 +219,11 @@ def tests_per_rev(predictable=False):
         print(meta['scw'])
         scw_tests(bgs, cts, exp, meta['scw'], tstart=oc.tstart)
 
-if __name__ == "__main__":
-    tests_per_rev(predictable=True)
+def main():
+    parser = argparse.ArgumentParser(
+        description = \
+        'Measure the fit quality of ISGRI background models against'
+        'a set of science windows using a set of methods.')
+    parser.add_argument('-p', '--predictable', action='store_true')
+    args = parser.parse_args()
+    tests_per_rev(**vars(args))
