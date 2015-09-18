@@ -6,7 +6,7 @@ Reference
 cube
 ^^^^
 
-.. automodule:: integral.isgri.cube
+.. automodule:: integral_isgri.cube
    :members:
 
 .. _bgcube:
@@ -14,5 +14,5 @@ cube
 bgcube
 ^^^^^^
 
-.. automodule:: integral.isgri.bgcube
+.. automodule:: integral_isgri.bgcube
    :members:
