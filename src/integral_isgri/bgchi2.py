@@ -63,7 +63,7 @@ def backgrounds():
     files = sorted(glob.glob( \
         '/Integral/data/ic/ibis/bkg/isgr_back_bkg_????.fits'))
     result = [{'file': file,
-               'rsg': bgcube.BGCube(file).rate_shadowgram(
+               'rsg': lambda t: bgcube.BGCube(file).rate_shadowgram(
                    e_min, e_max, per_keV=False)}
               for file in files]
     def read_bgcube(path):
@@ -88,8 +88,8 @@ def backgrounds():
     bts.lincomb(lightcurves, t)
     result += [{
         'file': 'bglincomb.BGTimeSeries.bgcube',
-        'rsg': np.ma.ones((128, 128)),
-        'bts': bts
+        'rsg': lambda t: bts.bgcube(t).rate_shadowgram(
+            e_min, e_max, per_keV=False)
     }]
 
     return result
@@ -147,9 +147,7 @@ def scw_tests(bgs, cts, exp, scwid, tstart=0):
     for bg, mask_alg, rate_alg in itertools.product(
             bgs, mask_algs, rate_algs):
 
-        bs = np.ma.asarray(bg['rsg'])
-        if bg['file'] == 'bglincomb.BGTimeSeries.bgcube':
-            bs = np.ma.asarray(bg['bts'].bgcube(tstart))
+        bs = np.ma.asarray(bg['rsg'](tstart))
         mask_name, mask_fn = mask_alg
         rate_name, rate_fn = rate_alg
         mask_rate_name = ','.join((mask_name, rate_name))
