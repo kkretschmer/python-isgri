@@ -29,6 +29,7 @@ try:
 except ImportError:
     import pyfits as fits
 
+from . import bgcube as _bgcube
 from . import cube
 
 class BGTimeSeries(object):
@@ -45,30 +46,36 @@ class BGTimeSeries(object):
         """Perform the linear least squares modelling for all pixels
         and store the results in the four preallocated arrays."""
 
-        e_min, e_max = 25, 80
-        cs = np.vstack(
-            [bc.rate_shadowgram(
-                e_min, e_max, per_keV=False)[np.newaxis, Ellipsis]
-             for bc in self.backgrounds])
-        # mcs = cs.mean()
+        n_ebins, n_z, n_y, n_lc = \
+            self.backgrounds[0].data.shape[0], 128, 128, len(lightcurves)
+        c = np.zeros((n_ebins, n_z, n_y, n_lc))
+        sigma = np.zeros((n_ebins, n_z, n_y, n_lc))
+        resid = np.zeros((n_ebins, n_z, n_y))
+        rank = np.zeros((n_ebins, n_z, n_y))
 
         A = np.transpose(np.vstack(
             [lc / np.amax(lc) for lc in lightcurves]))
-        
-        n_lc = A.shape[1]
-        c = np.zeros((128, 128, n_lc))
-        sigma = np.zeros((128, 128, n_lc))
-        resid = np.zeros((128, 128))
-        rank = np.zeros((128, 128))
 
-        for z in range(128):
-            for y in range(128):
-                rate = cs[:, z, y] # / mcs
-                p_c, p_resid, p_rank, p_sigma = lstsq(A, rate)
-                c[z, y, :] = p_c
-                resid[z, y] = p_resid
-                rank[z, y] = p_rank
-                sigma[z, y, :] = p_sigma
+        bc0 = self.backgrounds[0]
+        e_ranges = zip(bc0.e_min, bc0.e_max)
+        for i_e, e_range in enumerate(e_ranges):
+            e_min, e_max = e_range
+            print('[{e_min:0.1f} keV, {e_max:0.1f} keV]'.\
+                  format(e_min=e_min, e_max=e_max), end=' ')
+            cs = np.vstack(
+                [bc.rate_shadowgram(
+                    e_min, e_max, per_keV=False)[np.newaxis, Ellipsis]
+                 for bc in self.backgrounds])
+            # mcs = cs.mean()
+
+            for z in range(n_z):
+                for y in range(n_y):
+                    rate = cs[:, z, y] # / mcs
+                    p_c, p_resid, p_rank, p_sigma = lstsq(A, rate)
+                    c[i_e, z, y, :] = p_c
+                    resid[i_e, z, y] = p_resid
+                    rank[i_e, z, y] = p_rank
+                    sigma[i_e, z, y, :] = p_sigma
 
         self.lc_params = {
             'A': A, 't': t,
@@ -79,4 +86,12 @@ class BGTimeSeries(object):
         }
 
     def bgcube(self, t):
-        return np.dot(self.lc_params['c'], self.lc_params['f'](t))
+        bc = _bgcube.BGCube()
+        bc0 = self.backgrounds[0]
+        for attr in bc0.__dict__.keys():
+            if attr == 'data': continue
+            setattr(bc, attr, getattr(self.backgrounds[0], attr))
+        bc.data = np.dot(self.lc_params['c'], self.lc_params['f'](t))
+        bc.data = np.insert(bc.data, [32, 32, 64, 64, 96, 96], 0, axis=1)
+        bc.data = np.insert(bc.data, [64, 64], 0, axis=2)
+        return bc
