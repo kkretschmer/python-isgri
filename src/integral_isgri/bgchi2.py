@@ -191,7 +191,7 @@ def scw_tests(bgs, cts, exp, scwid, tstart=0):
                 print(scwid, bg['file'], mask_rate_name, qual_name, e_min, e_max,
                       quality, npix)
 
-def tests_per_rev(predictable=False):
+def tests_per_rev(predictable=False, srcsig=None):
     bgs = backgrounds()
     byscw = '/Integral/data/reduced/ddcache/byscw'
     avail = cube.osacubes_avail()
@@ -199,6 +199,14 @@ def tests_per_rev(predictable=False):
         predictable_scwlist = \
             '/data/integral/isgri_background/rate_model_below_1_sigma.dat'
         scw_pre = np.loadtxt(predictable_scwlist, dtype=np.uint64)[:, 0]
+    if srcsig:
+        srcsig_pre = np.loadtxt(
+            '/data/integral/srcsig-predictable.log_2015-06-27T16:08:58',
+            usecols=(0,1), dtype=[('scwid', 'u8'), ('sig', 'f8')])
+        scw_pre = np.intersect1d(
+            scw_pre,
+            srcsig_pre['scwid'][srcsig_pre['sig'] < srcsig]
+        )
 
     revs = sorted(avail.keys())
     cubes = []
@@ -230,5 +238,7 @@ def main():
         'Measure the fit quality of ISGRI background models against'
         'a set of science windows using a set of methods.')
     parser.add_argument('-p', '--predictable', action='store_true')
+    parser.add_argument('-s', '--srcsig', type=int,
+                        help='maximum source significance')
     args = parser.parse_args()
     tests_per_rev(**vars(args))
