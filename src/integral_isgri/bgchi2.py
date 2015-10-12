@@ -234,9 +234,10 @@ def tests_per_rev(predictable=False, srcsig=None):
 
 def main():
     parser = argparse.ArgumentParser(
-        description = \
-        'Measure the fit quality of ISGRI background models against'
-        'a set of science windows using a set of methods.')
+        description=
+        """Measure the fit quality of ISGRI background models against a set of
+        science windows using a set of methods."""
+    )
     parser.add_argument('-p', '--predictable', action='store_true')
     parser.add_argument('-s', '--srcsig', type=int,
                         help='maximum source significance')
