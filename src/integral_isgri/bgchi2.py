@@ -135,6 +135,13 @@ def scw_tests(bgs, cts, exp, scwid, tstart=0):
         ('logl-polycell', fitquality.fq_summed(fitquality.logl,
                                                fitquality.sum_polycell)),
     ]
+    for mdu in cube.Cube.mdus:
+        qual_algs.append(
+            (
+                'chi2-mdu{}'.format(mdu),
+                fitquality.fq_mdu(fitquality.chi2, [mdu])
+            )
+        )
 
     # I want to iterate over most combinations of background, pixel mask,
     # rate adjustment and quality measure. To keep the nesting depth small

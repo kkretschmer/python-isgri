@@ -22,6 +22,8 @@ from __future__ import division
 import numpy as np
 from scipy.stats import poisson
 
+from .. import cube
+
 def chi2(rate, cts, exp):
     """
     chi-squared of a shadowgram relative to a background shadowgram
@@ -70,3 +72,15 @@ def fq_summed(fq, grp):
         s_cts, s_exp = [grp(sg) for sg in (cts, exp)]
         return fq(s_rate, s_cts, s_exp)
     return fun_fq_summed
+
+def fq_mdu(fq, mdu):
+    """
+    Returns a function that applies the fit quality function ``fq`` with
+    only the MDUs in ``mdu`` active.
+    """
+    def fun_fq_mdu(rate, cts, exp):
+        mdu_cts = cts.copy()
+        for off_mdu in filter(lambda x: x not in mdu, cube.Cube.mdus):
+            mdu_cts[cube.Cube.mdu_slices[off_mdu]] = np.ma.masked
+        return fq(rate, mdu_cts, exp)
+    return fun_fq_mdu
