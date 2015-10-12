@@ -18,7 +18,7 @@
 #
 """
 Model the time evolution of ISGRI background maps using a linear combination
-of maps sclaed wit light curves
+of maps scaled with linearly interpolated light curves.
 """
 
 import argparse
