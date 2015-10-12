@@ -242,4 +242,6 @@ def main():
     parser.add_argument('-s', '--srcsig', type=int,
                         help='maximum source significance')
     args = parser.parse_args()
+    print(args)
+
     tests_per_rev(**vars(args))
