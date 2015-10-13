@@ -22,10 +22,13 @@ Handling of INTEGRAL/ISGRI background maps/cubes
 Reading, creating and transforming of cubes is supported
 """
 
+import datetime
 import io
 import logging
 import os
+import re
 import sqlite3
+
 import numpy as np
 from scipy.stats import norm
 try:
@@ -54,6 +57,7 @@ class BGCube(object):
             cube.Cube.default_bins(self)
             self.data = np.zeros((len(self.e_min), 134, 130),
                                  dtype=np.float32)
+            self.tstart, self.tstop = 1020.0, 11000.0 # launch - deorbit
         elif hasattr(src, 'counts') and hasattr(src, 'efficiency'):
             # cube-like source (N, 128, 128) where efficiency is
             # actually exposure
@@ -92,6 +96,72 @@ class BGCube(object):
         return np.delete(
             np.delete(exp_img, (64, 65), 1),
             (32, 33, 66, 67, 100, 101), 0)
+
+    def writeto(self, out, template=None, **kwargs):
+        """Write the background cube to an OSA format FITS file, using
+        an existing ``template`` FITS file as source of the DAL structure"""
+
+        tpl = fits.open(template)
+        now = datetime.datetime.utcnow()
+
+        origin_utc = datetime.datetime(1999, 12, 31, 23, 58, 55, 816000)
+        def utc2ijd(utc):
+            return (utc - origin_utc) / datetime.timedelta(days=1)
+
+        def ijd2utc(ijd):
+            return origin_utc + datetime.timedelta(days=ijd)
+
+        def timestamp(utc):
+            return utc.strftime('%Y-%m-%dT%H:%M:%S')
+
+        grp = tpl['GROUPING']
+        gh = grp.header
+        updates = [
+            ('CREATOR', __name__),
+            ('CONFIGUR', 'osa_10.0'),
+            ('DATE', timestamp(now)),
+            ('STAMP', ' '.join([timestamp(now), __name__])),
+            ('RESPONSI', '{user}@{host}'.format(
+                user=os.environ['USER'],
+                host=os.environ['HOSTNAME'])
+            ),
+            ('LOCATN', re.match(
+                '[^.]*\.(.*)', os.environ['HOSTNAME']).group(1))
+        ]
+        for key, default in updates:
+            if hasattr(self, key):
+                value = getattr(self, key)
+            else:
+                value = default
+            gh[key] = value
+        grp.data['VSTART'] = self.tstart
+        grp.data['VSTOP'] = self.tstop
+
+        images = filter(
+            lambda e: ('EXTNAME' in e.header.keys() and
+                       e.header['EXTNAME'] == 'ISGR-BACK-BKG'),
+            tpl)
+        updates += [
+            ('STRT_VAL', timestamp(ijd2utc(self.tstart))),
+            ('END_VAL', timestamp(ijd2utc(self.tstop))),
+            ('VSTART', self.tstart),
+            ('VSTOP', self.tstop)
+        ]
+        for img in images:
+            for i_e in np.where(
+                    np.logical_and(
+                        self.e_min == img.header['E_MIN'],
+                        self.e_max == img.header['E_MAX'])
+                    )[0]:
+                img.data[:, :] = self.data[i_e]
+                for key, default in updates:
+                    if hasattr(self, key):
+                        value = getattr(self, key)
+                    else:
+                        value = default
+                    img.header[key] = value
+
+        tpl.writeto(out, **kwargs)
 
 class BackgroundBuilder(object):
     """Build an ISGRI background cube from observations <scwids>"""
