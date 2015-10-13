@@ -36,8 +36,18 @@ from . import bgcube as _bgcube
 from . import cube
 
 class BGLinComb(object):
-    def __init__(self, backgrounds):
-        self.backgrounds = sorted(backgrounds, key=lambda x: x.tmean)
+    def __init__(self, backgrounds=None, file=None):
+        if backgrounds is not None:
+            self.backgrounds = sorted(backgrounds, key=lambda x: x.tmean)
+
+        if file is not None:
+            list = fits.open(file)
+            self.t = list['TIME'].data['time']
+            self.A = list['TRACERS'].data['tracers']
+            self.c = list['CUBES'].data
+            self.resid = list['RESIDUAL'].data
+
+            self.set_interp()
 
     def tmean(self):
         return np.array([bc.tmean for bc in self.backgrounds])
@@ -176,7 +186,7 @@ def mktemplate():
     backgrounds = [read_bgcube(ff) for ff in args.backgrounds]
     logging.info('read {n_cubes} input cubes'.format(
         n_cubes=len(backgrounds)))
-    blc = BGLinComb(backgrounds)
+    blc = BGLinComb(backgrounds=backgrounds)
 
     logging.info('extracting light curves')
     t = blc.tmean()
