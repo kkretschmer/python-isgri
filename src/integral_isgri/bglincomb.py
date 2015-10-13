@@ -177,7 +177,7 @@ def mktemplate():
     def read_bgcube(path):
         logging.debug('reading "{path}"'.format(path=path))
         hdulist = fits.open(path)
-        c = cube.Cube()
+        c = cube.Cube(osacube=True)
         c.counts, c.efficiency = [hdulist[i].data for i in [1, 2]]
         c.tmean = hdulist[1].header['tmean']
         hdulist.close()
