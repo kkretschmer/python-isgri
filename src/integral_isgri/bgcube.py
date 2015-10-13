@@ -54,7 +54,9 @@ class BGCube(object):
         if src is None:
             # create an empty cube
             #
-            cube.Cube.default_bins(self)
+            temp_cube = cube.Cube(osacube=True)
+            self.e_min = temp_cube.e_min
+            self.e_max = temp_cube.e_max
             self.data = np.zeros((len(self.e_min), 134, 130),
                                  dtype=np.float32)
             self.tstart, self.tstop = 1020.0, 11000.0 # launch - deorbit
