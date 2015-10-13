@@ -48,18 +48,33 @@ class BGLinComb(object):
 
         return np.array([mean_rate(bc) for bc in self.backgrounds])
 
+    def set_interp(self, t_min=0, t_max=1e5, **kwargs):
+        t = np.hstack([t_min, self.t, t_max])
+
+        def extrapolate(i0, i1, t):
+            t0, t1 = self.t[[i0, i1]]
+            dA = self.A[i1, :] - self.A[i0, :]
+            return self.A[i0, :] + dA * (t - t0) / (t1 - t0)
+
+        v_min = extrapolate(0, 1, t_min)
+        v_max = extrapolate(-2, -1, t_max)
+        A = np.vstack([v_min, self.A, v_max])
+
+        self.f = interp1d(t, A, axis=0, **kwargs)
+
     def lincomb(self, t, lightcurves):
         """Perform the linear least squares modelling for all pixels
         and store the results in the four preallocated arrays."""
 
-        n_ebins, n_z, n_y, n_lc = \
+        self.n_ebins, self.n_z, self.n_y, self.n_lc = \
             self.backgrounds[0].data.shape[0], 128, 128, len(lightcurves)
-        c = np.zeros((n_ebins, n_z, n_y, n_lc))
-        sigma = np.zeros((n_ebins, n_z, n_y, n_lc))
-        resid = np.zeros((n_ebins, n_z, n_y))
-        rank = np.zeros((n_ebins, n_z, n_y))
+        self.c = np.zeros((self.n_ebins, self.n_z, self.n_y, self.n_lc))
+        self.sing = np.zeros((self.n_ebins, self.n_z, self.n_y, self.n_lc))
+        self.resid = np.zeros((self.n_ebins, self.n_z, self.n_y))
+        self.rank = np.zeros((self.n_ebins, self.n_z, self.n_y))
 
-        A = np.transpose(np.vstack(
+        self.t = t
+        self.A = np.transpose(np.vstack(
             [lc / np.amax(lc) for lc in lightcurves]))
 
         bc0 = self.backgrounds[0]
@@ -73,34 +88,23 @@ class BGLinComb(object):
                 [bc.rate_shadowgram(
                     e_min, e_max, per_keV=False)[np.newaxis, Ellipsis]
                  for bc in self.backgrounds])
-            # mcs = cs.mean()
 
-            for z in range(n_z):
-                for y in range(n_y):
-                    rate = cs[:, z, y] # / mcs
-                    p_c, p_resid, p_rank, p_sigma = lstsq(A, rate)
-                    c[i_e, z, y, :] = p_c
-                    resid[i_e, z, y] = p_resid
-                    rank[i_e, z, y] = p_rank
-                    sigma[i_e, z, y, :] = p_sigma
+            for z in range(self.n_z):
+                for y in range(self.n_y):
+                    rate = cs[:, z, y]
+                    p_c, p_resid, p_rank, p_sing = lstsq(self.A, rate)
+                    self.c[i_e, z, y, :] = p_c
+                    self.resid[i_e, z, y] = p_resid
+                    self.rank[i_e, z, y] = p_rank
+                    self.sing[i_e, z, y, :] = p_sing
 
-        self.lc_params = {
-            'A': A, 't': t,
-            'c': c, 'resid': resid, 'rank': rank, 'sigma': sigma,
-            'f': interp1d(t, A, axis=0,
-                          bounds_error=False,
-                          fill_value=1)
-        }
+        self.set_interp()
 
     def bgcube(self, t):
         bc = _bgcube.BGCube()
-        bc0 = self.backgrounds[0]
-        for attr in bc0.__dict__.keys():
-            if attr == 'data': continue
-            setattr(bc, attr, getattr(self.backgrounds[0], attr))
-        bc.data = np.dot(self.lc_params['c'], self.lc_params['f'](t))
-        bc.data = np.insert(bc.data, [32, 32, 64, 64, 96, 96], 0, axis=1)
-        bc.data = np.insert(bc.data, [64, 64], 0, axis=2)
+        compact = np.dot(self.c, self.f(t))
+        expand_z = np.insert(compact, [32, 32, 64, 64, 96, 96], 0, axis=1)
+        bc.data = np.insert(expand_z, [64, 64], 0, axis=2)
         return bc
 
 def mktemplate():
