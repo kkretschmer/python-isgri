@@ -204,3 +204,29 @@ def mktemplate():
 
     if args.output is not None:
         blc.writeto(args.output)
+
+def mkcube():
+    parser = argparse.ArgumentParser(
+        description="""Read a template for an ISGRI background model
+        composed of a linear combination of background cubes, each scaled
+        by linear interpolation of a light curve over time. Interpolate
+        it in time and write it to a background cube."""
+    )
+    parser.add_argument('-d', '--ijd', type=float, help='IJD for interpolation')
+    parser.add_argument('-i', '--input', help='input model FITS file template')
+    parser.add_argument('-o', '--output', help='output FITS file')
+    parser.add_argument('-t', '--template', help='template FITS file')
+    parser.add_argument('-v', '--verbose', action='count', default=0)
+    args = parser.parse_args()
+
+    if args.verbose >= 2:
+        logging.basicConfig(level=logging.DEBUG)
+    elif args.verbose >= 1:
+        logging.basicConfig(level=logging.INFO)
+
+    if args.output is None:
+        logging.warn('No output file specified, results will not be saved.')
+
+    blc = BGLinComb(file=args.input)
+    bc = blc.bgcube(args.ijd)
+    bc.writeto(args.output, template=args.template, clobber=True)

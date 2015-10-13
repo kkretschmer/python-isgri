@@ -13,7 +13,8 @@ setup(
     entry_points = {
         'console_scripts': [
             'isgri-bgchi2 = integral_isgri.bgchi2:main',
-            'isgri-bglincomb-mktemplate = integral_isgri.bglincomb:mktemplate'
+            'isgri-bglincomb-mktemplate = integral_isgri.bglincomb:mktemplate',
+            'isgri-bglincomb-mkcube = integral_isgri.bglincomb:mkcube'
         ]
     }
 )
