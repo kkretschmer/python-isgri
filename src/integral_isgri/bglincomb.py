@@ -100,6 +100,43 @@ class BGLinComb(object):
 
         self.set_interp()
 
+    def writeto(self, out):
+        logging.info('writing output')
+        list = fits.HDUList()
+
+        ext = fits.BinTableHDU.from_columns(
+            [fits.Column(name='time', format='D', unit='d',
+                         array=self.t)])
+        ext.header['EXTNAME'] = 'TIME'
+        list.append(ext)
+
+        ext = fits.BinTableHDU.from_columns(
+            [fits.Column(name=attr, format='D', unit='keV',
+                         array=getattr(self.backgrounds[0], attr))
+             for attr in ['e_min', 'e_gmean', 'e_max', 'bin_width']]
+        )
+        ext.header['EXTNAME'] = 'ENERGY'
+        list.append(ext)
+
+        ext = fits.BinTableHDU.from_columns(
+            [fits.Column(name='tracers',
+                         format='{}D'.format(self.n_lc),
+                         array=self.A)])
+        ext.header['EXTNAME'] = 'TRACERS'
+        list.append(ext)
+
+        ext = fits.ImageHDU(self.c)
+        ext.header['EXTNAME'] = 'CUBES'
+        ext.header['BUNIT'] = 's-1'
+        list.append(ext)
+
+        ext = fits.ImageHDU(self.resid)
+        ext.header['EXTNAME'] = 'RESIDUAL'
+        ext.header['BUNIT'] = 's-1'
+        list.append(ext)
+
+        list.writeto(out, clobber=True)
+
     def bgcube(self, t):
         bc = _bgcube.BGCube()
         compact = np.dot(self.c, self.f(t))
@@ -153,3 +190,6 @@ def mktemplate():
 
     logging.info('fitting light curves')
     blc.lincomb(t, lightcurves)
+
+    if args.output is not None:
+        blc.writeto(args.output)
