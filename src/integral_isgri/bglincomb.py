@@ -91,7 +91,7 @@ class BGLinComb(object):
         e_ranges = zip(bc0.e_min, bc0.e_max)
         for i_e, e_range in enumerate(e_ranges):
             e_min, e_max = e_range
-            logging.info(
+            logging.debug(
                 'fitting energy range: [{e_min:0.1f} keV, {e_max:0.1f} keV]'.\
                 format(e_min=e_min, e_max=e_max))
             cs = np.vstack(
@@ -175,7 +175,7 @@ def mktemplate():
         logging.warn('No output file specified, results will not be saved.')
 
     def read_bgcube(path):
-        logging.info('reading "{path}"'.format(path=path))
+        logging.debug('reading "{path}"'.format(path=path))
         hdulist = fits.open(path)
         c = cube.Cube()
         c.counts, c.efficiency = [hdulist[i].data for i in [1, 2]]
@@ -183,6 +183,7 @@ def mktemplate():
         hdulist.close()
         return _bgcube.BGCube(c)
 
+    logging.info('reading input cubes')
     backgrounds = [read_bgcube(ff) for ff in args.backgrounds]
     logging.info('read {n_cubes} input cubes'.format(
         n_cubes=len(backgrounds)))
