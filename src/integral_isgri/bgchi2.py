@@ -54,41 +54,23 @@ cursor.execute(
     '   UNIQUE (test_id, scwid))'
 )
 
-outlier_count = fits.open('/data/integral/pixels/outlier_count.fits')
+outlier_count = fits.open('/data/integral/pixels/outlier-count_2015-07-23_4sigma.fits')
 outlier = outlier_count[0].data >= 4
 outlier_count.close()
 
 def backgrounds():
-    bg_path = '/data/integral/bgcube/2015-08-10_multi-200'
     files = sorted(glob.glob( \
         '/Integral/data/ic/ibis/bkg/isgr_back_bkg_????.fits'))
     result = [{'file': file,
                'rsg': lambda t: bgcube.BGCube(file).rate_shadowgram(
                    e_min, e_max, per_keV=False)}
               for file in files]
-    def read_bgcube(path):
-        hdulist = fits.open(path)
-        c = cube.Cube()
-        c.counts, c.efficiency = [hdulist[i].data for i in [1, 2]]
-        c.tmean = hdulist[1].header['tmean']
-        hdulist.close()
-        return bgcube.BGCube(c)
-    files = sorted(glob.glob(os.path.join(bg_path, 'bgcube????.fits')))
 
-    bc = [read_bgcube(ff) for ff in files]
-    t = np.array([c.tmean for c in bc])
-    bts = bglincomb.BGTimeSeries(bc)
-    lightcurves = [
-        np.ones_like(t),
-        bts.lightcurve(25, 80),
-        bts.lightcurve(80, 200),
-        bts.lightcurve(600, 900),
-        (t - np.amin(t)) / (np.amax(t) - np.amin(t))
-    ]
-    bts.lincomb(lightcurves, t)
+    blc = bglincomb.BGLinComb(
+        file='/data/integral/isgri_background/bglincomb.fits')
     result += [{
-        'file': 'bglincomb.BGTimeSeries.bgcube',
-        'rsg': lambda t: bts.bgcube(t).rate_shadowgram(
+        'file': 'bglincomb.BGLinComb.bgcube',
+        'rsg': lambda t: blc.bgcube(t).rate_shadowgram(
             e_min, e_max, per_keV=False)
     }]
 
