@@ -216,6 +216,10 @@ def mkcube():
     parser.add_argument('-i', '--input', help='input model FITS file template')
     parser.add_argument('-o', '--output', help='output FITS file')
     parser.add_argument('-t', '--template', help='template FITS file')
+    parser.add_argument('-l', '--outlier-map',
+                        help='FITS file with outlier counts per pixel')
+    parser.add_argument('-c', '--max-outlier-count', type=int, default=0,
+                        help='maximum allowed outlier count')
     parser.add_argument('-v', '--verbose', action='count', default=0)
     args = parser.parse_args()
 
@@ -229,4 +233,17 @@ def mkcube():
 
     blc = BGLinComb(file=args.input)
     bc = blc.bgcube(args.ijd)
+
+    if args.outlier_map is not None:
+        outlier_fits = fits.open(args.outlier_map)
+        outlier_count = outlier_fits[0].data
+        outlier_count = np.insert(
+            outlier_count, [32, 32, 64, 64, 96, 96], 0, axis=0)
+        outlier_count = np.insert(
+            outlier_count, [64, 64], 0, axis=1)
+        outlier_flag = outlier_count > args.max_outlier_count
+        outlier_cube = np.repeat(
+            outlier_flag[np.newaxis, ...], bc.data.shape[0], 0)
+        bc.data[outlier_cube] = np.nan
+
     bc.writeto(args.output, template=args.template, clobber=True)
