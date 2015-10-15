@@ -113,11 +113,17 @@ class BackgroundBuilder(object):
             pixels[dark] += 2
             pixels[hot] += 4
             hdu = fits.PrimaryHDU(pixels)
-            blob = io.BytesIO()
-            hdu.writeto(blob)
-            cursor.execute('''INSERT OR REPLACE INTO ps_not_outlier
-                (scwid, fits) VALUES (?, ?)''', (cube_in.scwid, blob.getvalue()))
-            blob.close()
+            try:
+                blob = io.BytesIO()
+                hdu.writeto(blob)
+                cursor.execute(
+                    'INSERT OR REPLACE INTO ps_not_outlier'
+                    '  (scwid, fits) VALUES (?, ?)',
+                    (cube_in.scwid, blob.getvalue())
+                )
+                blob.close()
+            except TypeError:
+                logging.error('Writing outlier FITS data failed.')
         return ps
 
     def ps_not_dark_hot(self, cube_in, write_fits=False):
@@ -141,12 +147,17 @@ class BackgroundBuilder(object):
             pixels[dark] += 2
             pixels[hot] += 4
             hdu = fits.PrimaryHDU(pixels)
-            blob = io.BytesIO()
-            hdu.writeto(blob)
-            cursor.execute('''INSERT OR REPLACE INTO {0}
-                 (scwid, fits) VALUES (?, ?)'''.format(name),
-                           (cube_in.scwid, blob.getvalue()))
-            blob.close()
+            try:
+                blob = io.BytesIO()
+                hdu.writeto(blob)
+                cursor.execute(
+                    'INSERT OR REPLACE INTO {0}'
+                    '  (scwid, fits) VALUES (?, ?)'.format(name),
+                    (cube_in.scwid, blob.getvalue())
+                )
+                blob.close()
+            except TypeError:
+                logging.error('Writing outlier FITS data failed.')
         return ps
 
     def fill_bad_pixels(self, cube_in,
