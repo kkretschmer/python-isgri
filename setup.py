@@ -14,7 +14,8 @@ setup(
         'console_scripts': [
             'isgri-bgchi2 = integral_isgri.bgchi2:main',
             'isgri-bglincomb-mktemplate = integral_isgri.bglincomb:mktemplate',
-            'isgri-bglincomb-mkcube = integral_isgri.bglincomb:mkcube'
+            'isgri-bglincomb-mkcube = integral_isgri.bglincomb:mkcube',
+            'isgri-stack-cubes = integral_isgri.cubestack:stack_cubes'
         ]
     }
 )

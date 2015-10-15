@@ -22,6 +22,7 @@ Stacking of INTEGRAL/ISGRI cubes
 Combine cubes to build background models.
 """
 
+import argparse
 import io
 import logging
 import os
@@ -36,6 +37,7 @@ except ImportError:
     import pyfits as fits
 
 from . import cube
+from . import bgcube as _bgcube
 from . import shadowgram
 
 class weighted_incremental_variance:
@@ -70,14 +72,13 @@ class weighted_incremental_variance:
 class BackgroundBuilder(object):
     """Build an ISGRI background cube from observations <scwids>"""
 
-    def __init__(self, scwids):
-        self.scwids = np.array(scwids, dtype=np.uint64)
+    def __init__(self):
         self.eff_min = 0.2
         self.sig_e_range = (60, 80)
         self.sig_thresholds = (-2.5, 2.5)
         self.erange_dark = (35, 900)
         self.erange_hot = (35, 51.5)
-        self.sigma_max = 4
+        self.sigma_max = 4.0
 
     def setref(self, bgcube):
         self.ref = bgcube
@@ -188,12 +189,16 @@ class BackgroundBuilder(object):
                 dst[dst.mask] = flt[dst.mask]
         return cube_out
 
-    def read_cubes(self, n_max=None):
-
+    def read_cubes(self, cubes, n_max=None):
+        """
+        Read ``cubes``, clean them and stack them, optionally grouping them
+        into batches of maximum size ``n_max``.
+        """
         def bgcube_new():
             bgcube = cube.Cube(osacube=True)
             bgcube.counts = np.ma.asarray(bgcube.counts, np.float32)
             setattr(bgcube, 'n_scw', 0)
+            setattr(bgcube, 'scwids', [])
             for attr in ['tstart', 'tmean', 'tstop']:
                 setattr(bgcube, attr, 0.0)
             setattr(bgcube, 'wiv_tmean',
@@ -202,9 +207,7 @@ class BackgroundBuilder(object):
                     weighted_incremental_variance(bgcube.efficiency))
             return bgcube
 
-        osacubes, ids = cube.osacubes(self.scwids)
-
-        conn = sqlite3.connect('bgcube.sqlite')
+        conn = sqlite3.connect('read_cubes.sqlite')
         cursor = conn.cursor()
 
         selectors = [
@@ -225,7 +228,7 @@ class BackgroundBuilder(object):
         bgcubes = []
         bgcube = bgcube_new()
 
-        for path in osacubes:
+        for input_cube in cubes:
             if n_max is not None and bgcube.n_scw >= n_max:
                 # save the current background cube and start a new one
                 #
@@ -233,9 +236,12 @@ class BackgroundBuilder(object):
                 bgcubes.append(bgcube)
                 bgcube = bgcube_new()
 
+            logger.info('input cube: {}'.format(input_cube))
             try:
-                oc = cube.Cube(path)
-                if oc.empty: continue
+                oc = cube.Cube(input_cube)
+                if oc.empty:
+                    logger.info('cube empty!')
+                    continue
                 if np.count_nonzero(oc.efficiency) == 0: continue
                 oc = oc.rebin()
                 idx = np.logical_not(oc.counts.mask)
@@ -268,6 +274,73 @@ class BackgroundBuilder(object):
             bgcube.wiv_tmean.input(tmean, oc.duration)
             bgcube.tmean = bgcube.wiv_tmean.mean()
             bgcube.tstop = oc.tstop
+            bgcube.scwids.append(oc.scwid)
 
         bgcubes += [bgcube]
         return bgcubes
+
+def stack_cubes():
+    parser = argparse.ArgumentParser(
+        description="""Read a list of INTEGRAL science windows and stack the
+        corresponding ISGRI data cubes (e.g. in preparation for creating a
+        background model). Write the result to a series of FITS files."""
+    )
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-p', '--paths',
+                        help='file with list of paths to input cubes')
+    group.add_argument('-s', '--scwids',
+                       help='file with list of input SCWIDs used in'
+                       ' conjunction with BASE and CUBE')
+    parser.add_argument('-b', '--base', help='base path for input cubes')
+    parser.add_argument('-c', '--cube',
+                        help='path of input cube relative to SCWID')
+    parser.add_argument('-g', '--group', type=int, default=1000000,
+                        help='maximum number of SCWs per stack')
+    parser.add_argument('-r', '--reference',
+                        help='path of reference background cube'
+                        ' for outlier detection')
+    parser.add_argument('-o', '--output', default='stack',
+                        help='output FITS file (Python format string)')
+    parser.add_argument('-v', '--verbose', action='count', default=0)
+    args = parser.parse_args()
+
+    if args.verbose >= 2:
+        logging.basicConfig(level=logging.DEBUG)
+    elif args.verbose >= 1:
+        logging.basicConfig(level=logging.INFO)
+
+    if args.paths is not None:
+        input_cubes = map(lambda x: x.rstrip('\r\n'),
+                          io.open(args.paths, 'r'))
+    else:
+        def scw_path(scwid):
+            id_ver = '{0:012d}.001'.format(scwid)
+            rev = id_ver[0:4]
+            return os.path.join(args.base, rev, id_ver, args. cube)
+
+        scwids = np.loadtxt(args.scwids, usecols=(0,), dtype=np.uint64)
+        input_cubes = map(scw_path, scwids)
+
+    bgb = BackgroundBuilder()
+    bgb.setref(_bgcube.BGCube(args.reference))
+    bgcubes = bgb.read_cubes(input_cubes, n_max=args.group)
+
+    for i, bc in enumerate(bgcubes):
+        hdu_pri = fits.PrimaryHDU()
+        hdu_cts = fits.ImageHDU(np.ma.filled(bc.counts, 0))
+        hdu_cts.header['EXTNAME'] = 'COUNTS'
+        hdu_eff = fits.ImageHDU(np.ma.filled(bc.efficiency, -1))
+        hdu_eff.header['EXTNAME'] = 'EXPOSURE'
+        hdu_var = fits.ImageHDU(np.ma.filled(bc.wiv_rate.var(), -1))
+        hdu_var.header['EXTNAME'] = 'RATE_VAR'
+        hdu_scw = fits.BinTableHDU.from_columns([fits.Column(
+            name='SCW', format='12A', array=bc.scwids)])
+        hdu_scw.header['EXTNAME'] = 'SCWIDS'
+        for hdu in [hdu_cts, hdu_eff, hdu_var, hdu_scw]:
+            for keyword in ['duration', 'n_scw', 'ontime',
+                            'tmean', 'tstart', 'tstop']:
+                hdu.header[keyword] = getattr(bc, keyword)
+        fitsfile = '{output}{num:04d}.fits'.format(
+            output=args.output, num=i)
+        hdulist = fits.HDUList([hdu_pri, hdu_cts, hdu_eff, hdu_var, hdu_scw])
+        hdulist.writeto(fitsfile, clobber=True)
