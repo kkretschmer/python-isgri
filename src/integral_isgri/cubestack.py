@@ -164,8 +164,9 @@ class BackgroundBuilder(object):
         def bgcube_new():
             bgcube = cube.Cube(osacube=True)
             bgcube.counts = np.ma.asarray(bgcube.counts, np.float32)
-            for attr in ['n_scw', 'tmean', 'tstart', 'tstop']:
-                setattr(bgcube, attr, 0)
+            setattr(bgcube, 'n_scw', 0)
+            for attr in ['tstart', 'tmean', 'tstop']:
+                setattr(bgcube, attr, 0.0)
             return bgcube
 
         osacubes, ids = cube.osacubes(self.scwids)
@@ -223,13 +224,13 @@ class BackgroundBuilder(object):
 
             bgcube.counts += fc.counts
             bgcube.efficiency += fc.efficiency * oc.duration
+            bgcube.n_scw += 1
             bgcube.duration += oc.duration
             bgcube.ontime += oc.ontime
             if bgcube.tstart == 0: bgcube.tstart = oc.tstart
             bgcube.tstop = oc.tstop
             tmean += 0.5 * (oc.tstart + oc.tstop) * oc.duration
 
-            bgcube.n_scw += 1
                     bgcube.tmean = tmean / bgcube.duration
                     tmean = 0
 
