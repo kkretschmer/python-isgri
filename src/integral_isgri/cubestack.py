@@ -38,6 +38,35 @@ except ImportError:
 from . import cube
 from . import shadowgram
 
+class weighted_incremental_variance:
+    """
+    from https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Weighted_incremental_algorithm
+
+    D. H. D. West, Communications of the ACM, Vol. 22 No. 9, Pages 532-535,
+    doi: 10.1145/359146.359153
+    http://people.xiph.org/~tterribe/tmp/homs/West79-_Updating_Mean_and_Variance_Estimates-_An_Improved_Method.pdf
+    """
+    def __init__(self, x):
+        self.n = 0
+        self.sumw = 0.0
+        self.m = 0.0
+        self.t = 0.0
+
+    def input(self, x, w):
+        self.n += 1
+        q = x - self.m
+        temp = self.sumw + w
+        r = q * w / temp
+        self.m += r
+        self.t += r * self.sumw * q
+        self.sumw = temp
+
+    def mean(self):
+        return self.m
+
+    def var(self):
+        return self.t * self.n / ((self.n - 1) * self.sumw)
+
 class BackgroundBuilder(object):
     """Build an ISGRI background cube from observations <scwids>"""
 
@@ -167,6 +196,10 @@ class BackgroundBuilder(object):
             setattr(bgcube, 'n_scw', 0)
             for attr in ['tstart', 'tmean', 'tstop']:
                 setattr(bgcube, attr, 0.0)
+            setattr(bgcube, 'wiv_tmean',
+                    weighted_incremental_variance(0.0))
+            setattr(bgcube, 'wiv_rate',
+                    weighted_incremental_variance(bgcube.efficiency))
             return bgcube
 
         osacubes, ids = cube.osacubes(self.scwids)
@@ -223,16 +256,18 @@ class BackgroundBuilder(object):
             fc = self.fill_bad_pixels(oc)
 
             bgcube.counts += fc.counts
-            bgcube.efficiency += fc.efficiency * oc.duration
+            exposure = fc.efficiency * oc.duration
+            bgcube.efficiency += exposure
+            bgcube.wiv_rate.input(fc.counts / exposure, oc.duration)
+
             bgcube.n_scw += 1
             bgcube.duration += oc.duration
             bgcube.ontime += oc.ontime
             if bgcube.tstart == 0: bgcube.tstart = oc.tstart
+            tmean = 0.5 * (oc.tstart + oc.tstop)
+            bgcube.wiv_tmean.input(tmean, oc.duration)
+            bgcube.tmean = bgcube.wiv_tmean.mean()
             bgcube.tstop = oc.tstop
-            tmean += 0.5 * (oc.tstart + oc.tstop) * oc.duration
-
-                    bgcube.tmean = tmean / bgcube.duration
-                    tmean = 0
 
         bgcubes += [bgcube]
         return bgcubes
