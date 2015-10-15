@@ -123,7 +123,7 @@ class BackgroundBuilder(object):
                 )
                 blob.close()
             except TypeError:
-                logging.error('Writing outlier FITS data failed.')
+                self.logger.error('Writing outlier FITS data failed.')
         return ps
 
     def ps_not_dark_hot(self, cube_in, write_fits=False):
@@ -157,7 +157,7 @@ class BackgroundBuilder(object):
                 )
                 blob.close()
             except TypeError:
-                logging.error('Writing outlier FITS data failed.')
+                self.logger.error('Writing outlier FITS data failed.')
         return ps
 
     def fill_bad_pixels(self, cube_in,
@@ -226,7 +226,8 @@ class BackgroundBuilder(object):
             {'fn': self.ps_not_dark_hot, 'args': (),
              'kwargs': {'write_fits': cursor}}
         ]
-        logger = logging.getLogger('read_cubes')
+        self.logger = logging.getLogger('read_cubes')
+        logger = self.logger
         logger.setLevel(logging.DEBUG)
         fh = logging.FileHandler('read_cubes.log')
         fh.setLevel(logging.DEBUG)
