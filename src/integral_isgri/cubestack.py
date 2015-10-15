@@ -192,6 +192,13 @@ class BackgroundBuilder(object):
         bgcube = bgcube_new()
 
         for path in osacubes:
+            if n_max is not None and bgcube.n_scw >= n_max:
+                # save the current background cube and start a new one
+                #
+                logger.info('starting new bgcube')
+                bgcubes.append(bgcube)
+                bgcube = bgcube_new()
+
             try:
                 oc = cube.Cube(path)
                 if oc.empty: continue
@@ -223,14 +230,7 @@ class BackgroundBuilder(object):
             tmean += 0.5 * (oc.tstart + oc.tstop) * oc.duration
 
             bgcube.n_scw += 1
-            if n_max:
-                if bgcube.n_scw >= n_max:
-                    # save the current background cube and start a new one
-                    #
                     bgcube.tmean = tmean / bgcube.duration
-                    logger.info('starting new bgcube')
-                    bgcubes += [bgcube]
-                    bgcube = bgcube_new()
                     tmean = 0
 
         bgcubes += [bgcube]
