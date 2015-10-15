@@ -244,6 +244,6 @@ def mkcube():
         outlier_flag = outlier_count > args.max_outlier_count
         outlier_cube = np.repeat(
             outlier_flag[np.newaxis, ...], bc.data.shape[0], 0)
-        bc.data[outlier_cube] = np.nan
+        bc.data[outlier_cube] = -1
 
     bc.writeto(args.output, template=args.template, clobber=True)
