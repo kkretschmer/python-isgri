@@ -143,7 +143,11 @@ class Cube(object):
                 if match:
                     self.scwid = match.groups()[0]
                 self.default_bins()
-                ff = fitsio.FITS(path)
+                try:
+                    ff = fitsio.FITS(path)
+                except IOError:
+                    self.empty = True
+                    return
                 self.valid = ff[3].read()
                 invalid = self.valid == 0
                 self.pixel_eff = np.ma.MaskedArray(ff[1].read(), invalid,
