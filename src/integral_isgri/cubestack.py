@@ -319,11 +319,13 @@ def stack_cubes():
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--outlier-sqlite', default='outlier-pixels.sqlite',
                         help='SQLite output file for outlier pixel maps')
-    group.add_argument('--no-outlier-sqlite', action='count')
+    group.add_argument('--no-outlier-sqlite', dest='outlier_sqlite',
+                       action='store_false')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--outlier-fits', default='outlier-pixels.fits',
                         help='FITS output file for outlier pixel maps')
-    group.add_argument('--no-outlier-fits', action='count')
+    group.add_argument('--no-outlier-fits', dest='outlier_fits',
+                       action='store_false')
     parser.add_argument('-v', '--verbose', action='count', default=0)
     args = parser.parse_args()
 
@@ -346,9 +348,9 @@ def stack_cubes():
 
     bgb = BackgroundBuilder()
 
-    if args.no_outlier_sqlite is None:
+    if args.outlier_sqlite:
         bgb.outlier_map_output['sqlite'] = args.outlier_sqlite
-    if args.no_outlier_fits is None:
+    if args.outlier_fits:
         bgb.outlier_map_output['fits'] = fits.HDUList()
 
     bgb.setref(_bgcube.BGCube(args.reference))
@@ -375,7 +377,7 @@ def stack_cubes():
         hdulist = fits.HDUList([hdu_pri, hdu_cts, hdu_eff, hdu_var, hdu_scw])
         hdulist.writeto(fitsfile, clobber=True)
 
-    if args.no_outlier_fits is None:
+    if args.outlier_fits:
         try:
             bgb.outlier_map_output['fits'].writeto(
                 args.outlier_fits, clobber=True)
