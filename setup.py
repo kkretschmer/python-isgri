@@ -17,5 +17,11 @@ setup(
             'isgri-bglincomb-mkcube = integral_isgri.bglincomb:mkcube',
             'isgri-stack-cubes = integral_isgri.cubestack:stack_cubes'
         ]
-    }
+    },
+    install_requires = [
+        'astropy',
+        'fitsio',
+        'numpy',
+        'scipy'
+    ]
 )
