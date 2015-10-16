@@ -220,6 +220,9 @@ def mkcube():
                         help='FITS file with outlier counts per pixel')
     parser.add_argument('-c', '--max-outlier-count', type=int, default=0,
                         help='maximum allowed outlier count')
+    parser.add_argument('-e', '--mask-module-edges', type=int, default=0,
+                        metavar='PIXELS',
+                        help='number of pixels to mask around module edges')
     parser.add_argument('-v', '--verbose', action='count', default=0)
     args = parser.parse_args()
 
@@ -245,5 +248,17 @@ def mkcube():
         outlier_cube = np.repeat(
             outlier_flag[np.newaxis, ...], bc.data.shape[0], 0)
         bc.data[outlier_cube] = -1
+
+    if args.mask_module_edges > 0:
+        mask_edge = np.zeros_like(bc.data[0], dtype=bool)
+        for offset in range(args.mask_module_edges):
+            for z, y in bc.mdu_origins_exp:
+                mask_edge[z + offset, y:(y + 64)] = True
+                mask_edge[z + 31 - offset, y:(y + 64)] = True
+                mask_edge[z:(z + 32), y + offset] = True
+                mask_edge[z:(z + 32), y + 63 - offset] = True
+        edge_cube = np.repeat(
+            mask_edge[np.newaxis, ...], bc.data.shape[0], 0)
+        bc.data[edge_cube] = -1
 
     bc.writeto(args.output, template=args.template, clobber=True)
