@@ -17,7 +17,7 @@ pixels.
 Identifying anomalous pixels
 ----------------------------
 
-The method to identify outlier pixels as implemented in :ref:`bgcube`
+The method to identify outlier pixels as implemented in :ref:`cubestack`
 looks at the statistical distribution of pixel counts compared to a
 reference count rate image. when applied to empty field observations,
 this identifies anomalously *dark* and *hot* pixels.

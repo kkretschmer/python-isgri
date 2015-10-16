@@ -16,3 +16,19 @@ bgcube
 
 .. automodule:: integral_isgri.bgcube
    :members:
+
+.. _cubestack:
+
+cubestack
+^^^^^^^^^
+
+.. automodule:: integral_isgri.cubestack
+   :members
+
+.. _bglincomb:
+
+bglincomb
+^^^^^^^^^
+
+.. automodule:: integral_isgri.bglincomb
+   :members:
