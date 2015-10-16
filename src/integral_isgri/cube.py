@@ -23,7 +23,6 @@ import os
 import re
 
 import numpy as np
-import matplotlib.pyplot as plt
 import fitsio
 
 try:
@@ -273,22 +272,13 @@ class Cube(object):
         return(rate)
 
     def show(self, e_min=25.0, e_max = 80.0, *args, **kwargs):
+        import matplotlib.pyplot as plt
         e = np.logical_and(self.e_min >= e_min, self.e_max <= e_max)
         print(self.e_min[e])
         shd = self.corr_shad()[e, :, :].sum(0)
-        dpi = np.ma.zeros((134, 130))
-        for y in (64, 65):
-            dpi[:, y] = np.nan
-        for z in (32, 33, 66, 67, 100, 101):
-            dpi[z, :] = np.nan
-        for y in range(0, 2):
-            for z in range(0, 4):
-                ys0, ys1 = y * 64, y * 64 + 64
-                zs0, zs1 = z * 32, z * 32 + 32
-                yd0, yd1 = y * 66, y * 66 + 64
-                zd0, zd1 = z * 34, z * 34 + 32
-                dpi[zd0:zd1, yd0:yd1] = shd[zs0:zs1, ys0:ys1]
-        plt.imshow(dpi, aspect='equal', interpolation='nearest',
+        shd = np.insert(shd, [32, 32, 64, 64, 96, 96], np.nan, axis=0)
+        shd = np.insert(shd, [64, 64], np.nan, axis=1)
+        plt.imshow(shd, aspect='equal', interpolation='nearest',
                    origin='lower', extent=(-0.5, 129.5, -0.5, 133.5),
                    *args, **kwargs)
 
