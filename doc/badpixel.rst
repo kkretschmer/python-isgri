@@ -1,5 +1,5 @@
-Bad Pixels
-==========
+Outlier Pixels
+==============
 
 Introduction
 ------------
