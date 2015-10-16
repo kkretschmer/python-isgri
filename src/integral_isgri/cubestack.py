@@ -237,8 +237,6 @@ class BackgroundBuilder(object):
         logger.addHandler(fh)
         logger.addHandler(ch)
 
-        tmean = 0
-        bgcubes = []
         bgcube = bgcube_new()
 
         for input_cube in cubes:
@@ -246,7 +244,7 @@ class BackgroundBuilder(object):
                 # save the current background cube and start a new one
                 #
                 logger.info('starting new bgcube')
-                bgcubes.append(bgcube)
+                value = (yield bgcube)
                 bgcube = bgcube_new()
 
             logger.info('input cube: {}'.format(input_cube))
@@ -289,8 +287,7 @@ class BackgroundBuilder(object):
             bgcube.tstop = oc.tstop
             bgcube.scwids.append(oc.scwid)
 
-        bgcubes += [bgcube]
-        return bgcubes
+        value = (yield bgcube)
 
 def stack_cubes():
     parser = argparse.ArgumentParser(
