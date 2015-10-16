@@ -312,6 +312,8 @@ def stack_cubes():
     parser.add_argument('-r', '--reference',
                         help='path of reference background cube'
                         ' for outlier detection')
+    parser.add_argument('--sigma-max', type=float, default=4.0,
+                        help='maximum deviation from reference to tolerate')
     parser.add_argument('-o', '--output', default='stack',
                         help='output FITS file (Python format string)')
     group = parser.add_mutually_exclusive_group()
@@ -350,6 +352,7 @@ def stack_cubes():
         bgb.outlier_map_output['fits'] = fits.HDUList()
 
     bgb.setref(_bgcube.BGCube(args.reference))
+    bgb.sigma_max = args.sigma_max
     bgcubes = bgb.read_cubes(input_cubes, n_max=args.group)
 
     for i, bc in enumerate(bgcubes):
