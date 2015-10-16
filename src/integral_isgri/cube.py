@@ -272,15 +272,18 @@ class Cube(object):
         return(rate)
 
     def show(self, e_min=25.0, e_max = 80.0, *args, **kwargs):
-        import matplotlib.pyplot as plt
-        e = np.logical_and(self.e_min >= e_min, self.e_max <= e_max)
-        print(self.e_min[e])
-        shd = self.corr_shad()[e, :, :].sum(0)
-        shd = np.insert(shd, [32, 32, 64, 64, 96, 96], np.nan, axis=0)
-        shd = np.insert(shd, [64, 64], np.nan, axis=1)
-        plt.imshow(shd, aspect='equal', interpolation='nearest',
-                   origin='lower', extent=(-0.5, 129.5, -0.5, 133.5),
-                   *args, **kwargs)
+        try:
+            import matplotlib.pyplot as plt
+            e = np.logical_and(self.e_min >= e_min, self.e_max <= e_max)
+            print(self.e_min[e])
+            shd = self.corr_shad()[e, :, :].sum(0)
+            shd = np.insert(shd, [32, 32, 64, 64, 96, 96], np.nan, axis=0)
+            shd = np.insert(shd, [64, 64], np.nan, axis=1)
+            plt.imshow(shd, aspect='equal', interpolation='nearest',
+                       origin='lower', extent=(-0.5, 129.5, -0.5, 133.5),
+                       *args, **kwargs)
+        except:
+            pass
 
 def osacubes_avail():
     """find available OSA cubes from the byscw direcory index file
