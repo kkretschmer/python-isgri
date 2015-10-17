@@ -22,6 +22,7 @@ of maps scaled with linearly interpolated light curves.
 """
 
 import argparse
+import io
 import logging
 
 import numpy as np
@@ -212,9 +213,15 @@ def mkcube():
         by linear interpolation of a light curve over time. Interpolate
         it in time and write it to a background cube."""
     )
-    parser.add_argument('-d', '--ijd', type=float, help='IJD for interpolation')
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-d', '--ijd', type=float, help='IJD for interpolation')
+    group.add_argument('--validity-from',
+                       help='file with list of IJDs delimiting the'
+                       ' validity intervals for interpolation')
     parser.add_argument('-i', '--input', help='input model FITS file template')
-    parser.add_argument('-o', '--output', help='output FITS file')
+    parser.add_argument('-o', '--output', default='bglincomb{0:04d}.fits',
+                        help='output FITS file (must be a Python format'
+                        ' string if --validity-from is specified)')
     parser.add_argument('-t', '--template', help='template FITS file')
     parser.add_argument('-l', '--outlier-map',
                         help='FITS file with outlier counts per pixel')
@@ -235,7 +242,19 @@ def mkcube():
         logging.warn('No output file specified, results will not be saved.')
 
     blc = BGLinComb(file=args.input)
-    bc = blc.bgcube(args.ijd)
+
+    if args.validity_from is not None:
+        time_limits = map(float, io.open(args.validity_from, 'r'))
+        time_ranges = zip(time_limits[:-1], time_limits[1:])
+
+        def range_cube(vstart, vstop):
+            bc = blc.bgcube(0.5 * (vstart + vstop))
+            bc.tstart, bc.tstop = vstart, vstop
+            return bc
+
+        output_cubes = map(lambda x: range_cube(*x), time_ranges)
+    else:
+        output_cubes = [blc.bgcube(args.ijd)]
 
     if args.outlier_map is not None:
         outlier_fits = fits.open(args.outlier_map)
@@ -246,19 +265,26 @@ def mkcube():
             outlier_count, [64, 64], 0, axis=1)
         outlier_flag = outlier_count > args.max_outlier_count
         outlier_cube = np.repeat(
-            outlier_flag[np.newaxis, ...], bc.data.shape[0], 0)
-        bc.data[outlier_cube] = -1
+            outlier_flag[np.newaxis, ...], blc.c.shape[0], 0)
 
     if args.mask_module_edges > 0:
-        mask_edge = np.zeros_like(bc.data[0], dtype=bool)
+        shape = (BGCube.n_z, BGCube.n_y)
+        mask_edge = np.zeros(shape, dtype=bool)
         for offset in range(args.mask_module_edges):
-            for z, y in bc.mdu_origins_exp:
+            for z, y in BGCube.mdu_origins_exp:
                 mask_edge[z + offset, y:(y + 64)] = True
                 mask_edge[z + 31 - offset, y:(y + 64)] = True
                 mask_edge[z:(z + 32), y + offset] = True
                 mask_edge[z:(z + 32), y + 63 - offset] = True
         edge_cube = np.repeat(
-            mask_edge[np.newaxis, ...], bc.data.shape[0], 0)
-        bc.data[edge_cube] = -1
+            mask_edge[np.newaxis, ...], blc.c.shape[0], 0)
 
-    bc.writeto(args.output, template=args.template, clobber=True)
+    for i, bc in enumerate(output_cubes):
+        if args.outlier_map is not None:
+            bc.data[outlier_cube] = -1
+        if args.mask_module_edges > 0:
+            bc.data[edge_cube] = -1
+
+        bc.writeto(args.output.format(i),
+                   template=args.template,
+                   clobber=True)
