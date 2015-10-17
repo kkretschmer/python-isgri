@@ -32,7 +32,7 @@ try:
 except ImportError:
     import pyfits as fits
 
-from . import bgcube as _bgcube
+from .bgcube import BGCube
 from . import cube
 
 class BGLinComb(object):
@@ -148,7 +148,7 @@ class BGLinComb(object):
         list.writeto(out, clobber=True)
 
     def bgcube(self, t):
-        bc = _bgcube.BGCube()
+        bc = BGCube()
         compact = np.dot(self.c, self.f(t))
         expand_z = np.insert(compact, [32, 32, 64, 64, 96, 96], 0, axis=1)
         bc.data = np.insert(expand_z, [64, 64], 0, axis=2)
@@ -181,7 +181,7 @@ def mktemplate():
         c.counts, c.efficiency = [hdulist[i].data for i in [1, 2]]
         c.tmean = hdulist[1].header['tmean']
         hdulist.close()
-        return _bgcube.BGCube(c)
+        return BGCube(c)
 
     logging.info('reading input cubes')
     backgrounds = [read_bgcube(ff) for ff in args.backgrounds]
