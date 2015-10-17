@@ -257,6 +257,7 @@ def mkcube():
         output_cubes = [blc.bgcube(args.ijd)]
 
     if args.outlier_map is not None:
+        logging.info('Preparing outlier pixel mask.')
         outlier_fits = fits.open(args.outlier_map)
         outlier_count = outlier_fits[0].data
         outlier_count = np.insert(
@@ -268,6 +269,8 @@ def mkcube():
             outlier_flag[np.newaxis, ...], blc.c.shape[0], 0)
 
     if args.mask_module_edges > 0:
+        logging.info('Preparing module edge mask ({} px).'.format(
+            args.mask_module_edges))
         shape = (BGCube.n_z, BGCube.n_y)
         mask_edge = np.zeros(shape, dtype=bool)
         for offset in range(args.mask_module_edges):
@@ -279,12 +282,15 @@ def mkcube():
         edge_cube = np.repeat(
             mask_edge[np.newaxis, ...], blc.c.shape[0], 0)
 
+    logging.info('Writing output cubes.')
     for i, bc in enumerate(output_cubes):
         if args.outlier_map is not None:
             bc.data[outlier_cube] = -1
         if args.mask_module_edges > 0:
             bc.data[edge_cube] = -1
 
+        logging.debug('Validity interval: [{}, {}]'.format(
+            bc.tstart, bc.tstop))
         bc.writeto(args.output.format(i),
                    template=args.template,
                    clobber=True)
