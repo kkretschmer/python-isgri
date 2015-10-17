@@ -45,6 +45,7 @@ class BGCube(object):
     mdu_origins_exp = (
         (102, 66), (68, 66), (34, 66), (0, 66),
         (102, 0), (68, 0), (34, 0), (0, 0))
+    n_z, n_y = 134, 130
 
     def __init__(self, src=None):
         if src is None:
@@ -53,7 +54,7 @@ class BGCube(object):
             temp_cube = cube.Cube(osacube=True)
             self.e_min = temp_cube.e_min
             self.e_max = temp_cube.e_max
-            self.data = np.zeros((len(self.e_min), 134, 130),
+            self.data = np.zeros((len(self.e_min), self.n_z, self.n_y),
                                  dtype=np.float32)
             self.tstart, self.tstop = 1020.0, 11000.0 # launch - deorbit
         elif hasattr(src, 'counts') and hasattr(src, 'efficiency'):
