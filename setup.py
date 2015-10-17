@@ -9,7 +9,7 @@ setup(
     author_email = 'kkretsch@apc.univ-paris7.fr',
     license = 'GPL2+',
     package_dir = {'': 'src'},
-    packages = find_packages(),
+    packages = find_packages('src'),
     entry_points = {
         'console_scripts': [
             'isgri-bgchi2 = integral_isgri.bgchi2:main',
