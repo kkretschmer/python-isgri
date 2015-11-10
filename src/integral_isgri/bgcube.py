@@ -22,6 +22,7 @@ Handling of INTEGRAL/ISGRI background maps/cubes
 Reading, creating and transforming of cubes is supported
 """
 
+import argparse
 import datetime
 import os
 import re
@@ -161,3 +162,52 @@ class BGCube(object):
                     img.header[key] = value
 
         tpl.writeto(out, **kwargs)
+
+def stack2osa():
+    parser = argparse.ArgumentParser(
+        description="""Read a template for an ISGRI background model
+        composed of a linear combination of background cubes, each scaled
+        by linear interpolation of a light curve over time. Interpolate
+        it in time and write it to a background cube."""
+    )
+    parser.add_argument('-i', '--input', help='input stack FITS file')
+    parser.add_argument('-o', '--output', help='output cube FITS file')
+    parser.add_argument('-t', '--template', help='template cube FITS file')
+    parser.add_argument('-l', '--outlier-map',
+                        help='FITS file with outlier counts per pixel')
+    parser.add_argument('-c', '--max-outlier-count', type=int, default=0,
+                        help='maximum allowed outlier count')
+    parser.add_argument('-e', '--mask-module-edges', type=int, default=0,
+                        metavar='PIXELS',
+                        help='number of pixels to mask around module edges')
+    parser.add_argument('--vstart', help='IJD of validity start')
+    parser.add_argument('--vstop', help='IJD of validity stop')
+    parser.add_argument('-v', '--verbose', action='count', default=0)
+    args = parser.parse_args()
+
+    if args.verbose >= 2:
+        logging.basicConfig(level=logging.DEBUG)
+    elif args.verbose >= 1:
+        logging.basicConfig(level=logging.INFO)
+
+    if args.output is None:
+        args.output = re.sub('\.fits', '_bkgcube.fits', args.input)
+
+    fits_in = fits.open(args.input)
+    stack = cube.Cube()
+    stack.counts = fits_in['COUNTS'].data
+    stack.efficiency = fits_in['EXPOSURE'].data
+    hdr = fits_in['COUNTS'].header
+    for attr in ('tstart', 'tstop'):
+        arg = getattr(args, re.sub('^t', 'v', attr))
+        if arg:
+            ijd = float(arg)
+        else:
+            ijd = hdr[attr]
+
+        setattr(stack, attr, ijd)
+
+    bc = BGCube(stack)
+    bc.writeto(args.output,
+               template=args.template,
+               clobber=True)
