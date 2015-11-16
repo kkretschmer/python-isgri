@@ -84,6 +84,17 @@ class BGCube(object):
                  for pos in grp.data['MEMBER_POSITION']])
             bm_fits.close()
 
+    @classmethod
+    def fromstack(cls, path):
+        stack = cube.Cube()
+        fits_in = fits.open(path)
+        hdr = fits_in['COUNTS'].header
+        stack.counts = fits_in['COUNTS'].data
+        stack.efficiency = fits_in['EXPOSURE'].data
+        for attr in ('tstart', 'tmean', 'tstop'):
+            setattr(stack, attr, hdr[attr])
+        return cls(stack)
+
     def rate_shadowgram(self, e_min=0, e_max=np.inf, per_keV=True):
         """Shadowgram of count rate, optionally for a subset of the energy range
 
@@ -193,21 +204,12 @@ def stack2osa():
     if args.output is None:
         args.output = re.sub('\.fits', '_bkgcube.fits', args.input)
 
-    fits_in = fits.open(args.input)
-    stack = cube.Cube()
-    stack.counts = fits_in['COUNTS'].data
-    stack.efficiency = fits_in['EXPOSURE'].data
-    hdr = fits_in['COUNTS'].header
+    bc = BGCube.fromstack(args.input)
     for attr in ('tstart', 'tstop'):
         arg = getattr(args, re.sub('^t', 'v', attr))
         if arg:
-            ijd = float(arg)
-        else:
-            ijd = hdr[attr]
+            setattr(bc, attr, float(arg))
 
-        setattr(stack, attr, ijd)
-
-    bc = BGCube(stack)
     bc.writeto(args.output,
                template=args.template,
                clobber=True)
