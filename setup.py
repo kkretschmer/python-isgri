@@ -13,6 +13,7 @@ setup(
     entry_points = {
         'console_scripts': [
             'isgri-bgchi2 = integral_isgri.bgchi2:main',
+            'isgri-bgcube-httpd = integral_isgri.bgserver:serve_cubes',
             'isgri-bglincomb-mktemplate = integral_isgri.bglincomb:mktemplate',
             'isgri-bglincomb-mkcube = integral_isgri.bglincomb:mkcube',
             'isgri-stack-cubes = integral_isgri.cubestack:stack_cubes',
@@ -22,6 +23,7 @@ setup(
     install_requires = [
         'astropy',
         'fitsio',
+        'future',
         'numpy',
         'scipy'
     ]
