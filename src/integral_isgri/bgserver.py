@@ -39,6 +39,7 @@ except ImportError:
     import pyfits as fits
 
 from .bgcube import BGCube
+from .bglincomb import BGLinComb
 
 class CubeHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
     """Handle HTTP requests for ISGRI background cubes
@@ -132,6 +133,13 @@ def serve_cubes():
     stacks = []
 
     httpd.fromijd['zero'] = lambda ijd: BGCube()
+    for infile in args.inputs:
+        signature = [t[1] for t in fits.info(infile, output=False)]
+        if signature[1:5] == ['TIME', 'ENERGY', 'TRACERS', 'CUBES']:
+            # bglincomb template
+            #
+            blc = BGLinComb(file=infile)
+            httpd.fromijd['lincomb'] = blc.bgcube
     httpd.template = fits.open(args.template, memmap=True)
     try:
         httpd.serve_forever()
