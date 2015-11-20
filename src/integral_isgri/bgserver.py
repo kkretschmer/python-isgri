@@ -66,11 +66,23 @@ class CubeHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         Return value is a BytesIO object containing the output FITS data.
         """
         components = self.path.split('/')
-        if components[1] == 'ijd':
-            ijd = float(components[2])
-            bc = self.server.fromijd(ijd)
+        if len(components) == 4:
+            indexing = components[2]
+            if indexing == 'ijd':
+                method, ijd = components[1], float(components[3])
+                if method in self.server.fromijd.keys():
+                    bc = self.server.fromijd[method](ijd)
+                else:
+                    self.send_error(
+                        404, "Generating method '{}' not found.".format(method))
+                    return None
+            else:
+                self.send_error(
+                    404, "Indexing method '{}' not found.".format(indexing))
+                return None
         else:
-            self.send_error(404, "File not found")
+            self.send_error(
+                404, "URI format not supported.")
             return None
 
         blob = io.BytesIO()
@@ -114,8 +126,12 @@ def serve_cubes():
         logging.basicConfig(level=logging.INFO)
 
     server_address = ('', args.http_port)
-    httpd.fromijd = lambda ijd: BGCube()
     httpd = ForkingHTTPServer(server_address, CubeHTTPRequestHandler)
+
+    httpd.fromijd = {}
+    stacks = []
+
+    httpd.fromijd['zero'] = lambda ijd: BGCube()
     httpd.template = fits.open(args.template, memmap=True)
     try:
         httpd.serve_forever()
