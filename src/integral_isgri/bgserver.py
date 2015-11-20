@@ -33,10 +33,12 @@ import logging
 import socketserver
 import http.server
 
-from astropy.io import fits
+try:
+    from astropy.io import fits
+except ImportError:
+    import pyfits as fits
 
 from .bgcube import BGCube
-from . import cube
 
 class CubeHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
     """Handle HTTP requests for ISGRI background cubes
