@@ -292,5 +292,5 @@ def mkcube():
         logging.debug('Validity interval: [{}, {}]'.format(
             bc.tstart, bc.tstop))
         bc.writeto(args.output.format(i),
-                   template=args.template,
+                   template=fits.open(args.template),
                    clobber=True)

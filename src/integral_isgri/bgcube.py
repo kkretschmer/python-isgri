@@ -110,9 +110,9 @@ class BGCube(object):
 
     def writeto(self, out, template=None, **kwargs):
         """Write the background cube to an OSA format FITS file, using
-        an existing ``template`` FITS file as source of the DAL structure"""
+        an existing ``template`` FITS HDU list as source of the DAL structure"""
 
-        tpl = fits.open(template)
+        tpl = template
         now = datetime.datetime.utcnow()
 
         origin_utc = datetime.datetime(1999, 12, 31, 23, 58, 55, 816000)

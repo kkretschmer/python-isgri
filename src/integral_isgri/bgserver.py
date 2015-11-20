@@ -30,6 +30,7 @@ standard_library.install_aliases()
 import argparse
 import io
 import logging
+import socketserver
 import http.server
 
 from astropy.io import fits
@@ -79,6 +80,10 @@ class CubeHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         return blob
 
+class ForkingHTTPServer(socketserver.ForkingMixIn,
+                        http.server.HTTPServer):
+    pass
+
 def serve_cubes():
     parser = argparse.ArgumentParser(
         description="""Read a template for an ISGRI background model
@@ -107,9 +112,9 @@ def serve_cubes():
         logging.basicConfig(level=logging.INFO)
 
     server_address = ('', args.http_port)
-    httpd = http.server.HTTPServer(server_address, CubeHTTPRequestHandler)
     httpd.fromijd = lambda ijd: BGCube()
-    httpd.template = args.template
+    httpd = ForkingHTTPServer(server_address, CubeHTTPRequestHandler)
+    httpd.template = fits.open(args.template, memmap=True)
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
