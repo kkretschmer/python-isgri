@@ -30,6 +30,7 @@ standard_library.install_aliases()
 import argparse
 import io
 import logging
+import six
 import socketserver
 import http.server
 
@@ -86,7 +87,7 @@ class CubeHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                 404, "URI format not supported.")
             return None
 
-        blob = io.BytesIO()
+        blob = six.BytesIO()
         bc.writeto(blob, template=self.server.template)
 
         self.send_response(200)
