@@ -174,6 +174,60 @@ class BGCube(object):
 
         tpl.writeto(out, **kwargs)
 
+class BGCubeSet(object):
+    """
+    Manipulate a set of ISGRI background cubes.
+    """
+    def __init__(self, cubes):
+        self.cubes = cubes
+
+    def settimes(self):
+        """Set the time attributes to lists containing the corresponding
+        attributes of the component cubes
+        """
+        for attr in ('tstart', 'tmean', 'tstop', 'duration', 'ontime'):
+            setattr(self, attr,
+                    list(map(lambda x: getattr(x, attr), self.cubes)))
+
+    def nearest(self, ijd):
+        """Return the cube which is nearest to the IJD passed.
+
+        If the TSTART <= IJD <= TSTOP for more than one cube, return
+        the one with the smallest (TSTOP - TSTART).
+
+        If TSTART <= IJD <= TSTOP for no cube, return the one where
+        the minimum of (IJD - TSTART, IDJ - TSTOP) is smallest.
+        """
+        result = None
+        # find cubes with ijd inside
+        #
+        inside = filter(lambda x: x.tstart <= ijd and ijd <= x.tstop,
+                        self.cubes)
+        for c in sorted(inside, key=lambda x: x.tstop - x.tstart):
+            result = c
+            break
+
+        if result is None:
+            # ijd is outside of all cubes
+            #
+            for c in sorted(self.cubes,
+                            key=lambda x: min(abs(ijd - x.tstart),
+                                              abs(ijd - x.tstop))):
+                result = c
+                break
+
+        return result
+
+    def linear(self, ijd):
+        """Returns a linear inter/extrapolation using the two cubes whose
+        TMEAN is closest to the IJD passed.
+        """
+        c0, c1 = sorted(self.cubes, key=lambda x: abs(ijd - x.tmean))[0:2]
+        result = BGCube()
+        result.data = c0.data + (c1.data - c0.data) * \
+                      (ijd - c0.tmean) / (c1.tmean - c0.tmean)
+        return result
+
 def stack2osa():
     parser = argparse.ArgumentParser(
         description="""Read a template for an ISGRI background model

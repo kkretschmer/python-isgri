@@ -38,7 +38,7 @@ try:
 except ImportError:
     import pyfits as fits
 
-from .bgcube import BGCube
+from .bgcube import BGCube, BGCubeSet
 from .bglincomb import BGLinComb
 
 class CubeHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
@@ -140,6 +140,15 @@ def serve_cubes():
             #
             blc = BGLinComb(file=infile)
             httpd.fromijd['lincomb'] = blc.bgcube
+        elif signature[1:3] == ['COUNTS', 'EXPOSURE']:
+            # cube stack
+            #
+            stacks.append(BGCube.fromstack(infile))
+
+    if len(stacks) > 0:
+        bcs = BGCubeSet(stacks)
+        httpd.fromijd['nearest'] = bcs.nearest
+        httpd.fromijd['linear'] = bcs.linear
     httpd.template = fits.open(args.template, memmap=True)
     try:
         httpd.serve_forever()
