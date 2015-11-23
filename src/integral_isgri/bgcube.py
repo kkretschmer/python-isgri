@@ -24,6 +24,7 @@ Reading, creating and transforming of cubes is supported
 
 import argparse
 import datetime
+import logging
 import os
 import re
 
@@ -204,6 +205,7 @@ class BGCubeSet(object):
         inside = filter(lambda x: x.tstart <= ijd and ijd <= x.tstop,
                         self.cubes)
         for c in sorted(inside, key=lambda x: x.tstop - x.tstart):
+            msg = 'containing'
             result = c
             break
 
@@ -213,9 +215,19 @@ class BGCubeSet(object):
             for c in sorted(self.cubes,
                             key=lambda x: min(abs(ijd - x.tstart),
                                               abs(ijd - x.tstop))):
+                msg = 'nearest'
                 result = c
                 break
 
+        logging.debug('nearest: {msg} cube: '
+                      'TSTART = {tstart}, '
+                      'TSTOP = {tstop} -> '
+                      'IJD = {ijd}'.format(
+                          msg=msg,
+                          tstart=c.tstart,
+                          tstop=c.tstop,
+                          ijd=ijd)
+        )
         return result
 
     def linear(self, ijd):
@@ -226,6 +238,14 @@ class BGCubeSet(object):
         result = BGCube()
         result.data = c0.data + (c1.data - c0.data) * \
                       (ijd - c0.tmean) / (c1.tmean - c0.tmean)
+        logging.debug('linear: interpolating '
+                      'TMEAN_0 = {tmean_0}, '
+                      'TMEAN_1 = {tmean_1} -> '
+                      'IJD = {ijd}'.format(
+                          tmean_0=c0.tmean,
+                          tmean_1=c1.tmean,
+                          ijd=ijd)
+        )
         return result
 
 def stack2osa():

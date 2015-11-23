@@ -140,15 +140,21 @@ def serve_cubes():
             #
             blc = BGLinComb(file=infile)
             httpd.fromijd['lincomb'] = blc.bgcube
+            logging.info('Initalised method "lincomb" from file: {}'.format(
+                infile))
         elif signature[1:3] == ['COUNTS', 'EXPOSURE']:
             # cube stack
             #
             stacks.append(BGCube.fromstack(infile))
+            logging.info('Added file to stack set: {}'.format(infile))
 
     if len(stacks) > 0:
         bcs = BGCubeSet(stacks)
         httpd.fromijd['nearest'] = bcs.nearest
+        logging.info('Initalised stack set method "nearest".')
         httpd.fromijd['linear'] = bcs.linear
+        logging.info('Initalised stack set method "linear".')
+
     httpd.template = fits.open(args.template, memmap=True)
     try:
         httpd.serve_forever()
