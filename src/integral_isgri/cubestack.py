@@ -27,6 +27,7 @@ import io
 import logging
 import os
 import re
+import six
 import sqlite3
 
 import numpy as np
@@ -100,7 +101,7 @@ class BackgroundBuilder(object):
             cursor.execute('''CREATE TABLE IF NOT EXISTS {0}
                 (scwid TEXT PRIMARY KEY, fits BLOB)'''.format(name))
             hdu = fits.PrimaryHDU(pixels)
-            blob = io.BytesIO()
+            blob = six.BytesIO()
             try:
                 hdu.writeto(blob)
                 cursor.execute(

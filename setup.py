@@ -25,6 +25,7 @@ setup(
         'fitsio',
         'future',
         'numpy',
-        'scipy'
+        'scipy',
+        'six'
     ]
 )
