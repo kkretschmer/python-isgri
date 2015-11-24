@@ -26,6 +26,7 @@ import argparse
 import io
 import logging
 import os
+import progressbar
 import re
 import six
 import sqlite3
@@ -240,7 +241,8 @@ class BackgroundBuilder(object):
 
         bgcube = bgcube_new()
 
-        for input_cube in cubes:
+        bar = progressbar.ProgressBar()
+        for input_cube in bar(cubes):
             if n_max is not None and bgcube.n_scw >= n_max:
                 # save the current background cube and start a new one
                 #

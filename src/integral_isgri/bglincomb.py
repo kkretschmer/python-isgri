@@ -24,6 +24,7 @@ of maps scaled with linearly interpolated light curves.
 import argparse
 import io
 import logging
+import progressbar
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -90,7 +91,8 @@ class BGLinComb(object):
 
         bc0 = self.backgrounds[0]
         e_ranges = zip(bc0.e_min, bc0.e_max)
-        for i_e, e_range in enumerate(e_ranges):
+        bar = progressbar.ProgressBar()
+        for i_e, e_range in enumerate(bar(list(e_ranges))):
             e_min, e_max = e_range
             logging.debug(
                 'fitting energy range: [{e_min:0.1f} keV, {e_max:0.1f} keV]'.\

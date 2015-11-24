@@ -25,6 +25,7 @@ setup(
         'fitsio',
         'future',
         'numpy',
+        'progressbar2',
         'scipy',
         'six'
     ]
